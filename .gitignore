@@ -1,0 +1,7 @@
+# Credentials
+Firebase_credet.txt
+
+# Local files
+.DS_Store
+Thumbs.db
+*.log
