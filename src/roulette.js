@@ -3,16 +3,16 @@ import { updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/fireba
 import { db } from './firebase.js';
 
 export const CATEGORIES = [
-    { name: "Recuerdos y Conexión", emoji: "💭", color: "#FFD166",
+    { name: "🎲 Sorpresa", emoji: "🎲", color: "#7B2CBF",
+      topics: ["Sorpresa"] },
+    { name: "Recuerdos y Conexión", emoji: "☁️", color: "#FFD166",
       topics: ["El Baúl de los Recuerdos", "Lector de Mentes", "Nuestra Historia", "Secretos Revelados"] },
-    { name: "Divertidos y Cotidianos", emoji: "😂", color: "#06D6A0",
+    { name: "Divertidos y Cotidianos", emoji: "🎭", color: "#06D6A0",
       topics: ["El Socio Ideal", "Intercambio de Cuerpos", "Cuestión de Gustos", "Terapia de Risas"] },
-    { name: "Para Soñar Juntos", emoji: "🌟", color: "#4CC9F0",
+    { name: "Para Soñar Juntos", emoji: "☀️", color: "#4CC9F0",
       topics: ["La Casa de tus Sueños", "Próxima Parada (Viajes)", "Metas Compartidas"] },
-    { name: "Picantes y Atrevidos", emoji: "🌶️", color: "#FF6B9D",
-      topics: ["Modo Clandestino", "Fantasías sobre la Mesa", "Quién Toma el Control", "Noche de Cita 5 Estrellas"] },
-    { name: "🎲 Sorpresa", emoji: "🎲", color: "url(#rainbow)",
-      topics: ["Sorpresa"] }
+    { name: "Picantes y Atrevidos", emoji: "🌶️", color: "#EF233C",
+      topics: ["Modo Clandestino", "Fantasías sobre la Mesa", "Quién Toma el Control", "Noche de Cita 5 Estrellas"] }
 ];
 
 export function renderRoulette() {
@@ -22,11 +22,10 @@ export function renderRoulette() {
 
     let svgHTML = `<svg viewBox="0 0 100 100" class="w-full h-full transform -rotate-90">
         <defs>
-            <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#FF6B9D" />
-                <stop offset="50%" stop-color="#C77DFF" />
-                <stop offset="100%" stop-color="#4CC9F0" />
-            </linearGradient>
+            <radialGradient id="inner-shadow" cx="50%" cy="50%" r="50%">
+                <stop offset="70%" stop-color="transparent" stop-opacity="0" />
+                <stop offset="100%" stop-color="#000" stop-opacity="0.5" />
+            </radialGradient>
         </defs>`;
 
     CATEGORIES.forEach((cat, i) => {
@@ -39,17 +38,20 @@ export function renderRoulette() {
         const x2 = 50 + 50 * Math.cos((Math.PI * endAngle) / 180);
         const y2 = 50 + 50 * Math.sin((Math.PI * endAngle) / 180);
 
-        svgHTML += `<path d="M50 50 L${x1} ${y1} A50 50 0 0 1 ${x2} ${y2} Z" fill="${cat.color}" stroke="#1A1A2E" stroke-width="0.5"/>`;
+        svgHTML += `<path d="M50 50 L${x1} ${y1} A50 50 0 0 1 ${x2} ${y2} Z" fill="${cat.color}" stroke="#1A1A2E" stroke-width="0.8"/>`;
 
-        // Texto centrado en el sector
+        // Texto centrado en el sector (Aumentar tamaño de emoji y centrar mejor)
         const midAngle = startAngle + arc / 2;
-        const textRadius = 35;
+        const textRadius = 32;
         const tx = 50 + textRadius * Math.cos((Math.PI * midAngle) / 180);
         const ty = 50 + textRadius * Math.sin((Math.PI * midAngle) / 180);
 
         // Rotamos el texto para que mire hacia afuera
-        svgHTML += `<text x="${tx}" y="${ty}" transform="rotate(${midAngle + 90}, ${tx}, ${ty})" fill="#1A1A2E" font-size="6" font-weight="bold" text-anchor="middle" alignment-baseline="middle">${cat.emoji}</text>`;
+        svgHTML += `<text x="${tx}" y="${ty}" transform="rotate(${midAngle + 90}, ${tx}, ${ty})" font-size="20" text-anchor="middle" alignment-baseline="middle" style="filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.4));">${cat.emoji}</text>`;
     });
+
+    // Agregar sombra interior para dar volumen a la ruleta
+    svgHTML += `<circle cx="50" cy="50" r="50" fill="url(#inner-shadow)" pointer-events="none" />`;
 
     svgHTML += `</svg>`;
     wheel.innerHTML = svgHTML;

@@ -260,9 +260,15 @@ async function onSessionUpdate(sessionData) {
     // Animación de la ruleta
     if (sessionData.status === 'spinning' && isNewStatus) {
         lastProcessedStatus = sessionData.status;
+        
+        // Aseguramos que la vista sea la correcta incluso si reconectó tarde
+        showView(views.roulette);
+        document.getElementById('roulette-turn-msg').innerText = "¡Girando...!";
         btnSpin.disabled = true;
+        
+        // Animamos localmente en ambas pantallas
         animateRouletteTo(sessionData.rouletteAngle, async () => {
-            // Solo quien giró avanza el estado
+            // Solo quien giró avanza el estado en la base de datos
             if (state.role === sessionData.spinnerTurn) {
                 await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'revealing' });
             }

@@ -33,11 +33,27 @@ export async function renderResults() {
     document.getElementById('results-match-percent').innerText = `${matchPercent}%`;
 
     let verdict = "";
-    if (matchPercent >= 80) verdict = "¡Almas Gemelas! 🔥";
-    else if (matchPercent >= 60) verdict = "Se conocen muy bien 💖";
-    else if (matchPercent >= 40) verdict = "Van por muy buen camino 😊";
-    else verdict = "¡Hay que hablar más! 😅";
+    let advice = "";
+    if (matchPercent >= 80) {
+        verdict = "¡Almas Gemelas! 🔥";
+        advice = "¡Son increíbles juntos! Sigan cultivando esa conexión única. 💖";
+    } else if (matchPercent >= 60) {
+        verdict = "Se conocen muy bien 💖";
+        advice = "Tienen una conexión sólida. ¡Sigan explorando juntos! ✨";
+    } else if (matchPercent >= 40) {
+        verdict = "Van por muy buen camino 😊";
+        advice = "Cada conversación los acerca más. ¡Sigan hablando! 💬";
+    } else {
+        verdict = "¡Hay que hablar más! 😅";
+        advice = "Conversaciones profundas crean conexiones más fuertes. ❤️";
+    }
     document.getElementById('results-verdict').innerText = verdict;
+    const adviceEl = document.getElementById('results-advice');
+    if (adviceEl) adviceEl.innerText = advice;
+
+    // Animar barra de compatibilidad con pequeño delay
+    const bar = document.getElementById('results-match-bar');
+    if (bar) setTimeout(() => { bar.style.width = `${matchPercent}%`; }, 300);
 
     document.getElementById('results-p1-name').innerText = data.playerNames.host;
     document.getElementById('results-p1-score').innerText = `${hostScore}/10`;
@@ -47,9 +63,9 @@ export async function renderResults() {
 
     const winnerText = document.getElementById('results-winner-text');
     if (hostScore > guestScore) {
-        winnerText.innerText = `🏆 ¡${data.playerNames.host} conoce mejor a su pareja!`;
+        winnerText.innerHTML = `¡<span style="color:#FF6B9D;">${data.playerNames.host}</span> conoce mejor a su pareja!`;
     } else if (guestScore > hostScore) {
-        winnerText.innerText = `🏆 ¡${data.playerNames.guest} conoce mejor a su pareja!`;
+        winnerText.innerHTML = `¡<span style="color:#C77DFF;">${data.playerNames.guest}</span> conoce mejor a su pareja!`;
     } else {
         winnerText.innerText = "🤝 ¡Empate perfecto!";
     }
@@ -76,7 +92,8 @@ export async function renderResults() {
         const isHidden = breakdown.classList.contains('hidden');
         breakdown.classList.toggle('hidden', !isHidden);
         breakdown.classList.toggle('flex', isHidden);
-        btnToggle.innerText = isHidden ? '🔼 Ocultar desglose' : '🔍 Ver desglose completo';
+        const label = btnToggle.querySelector('span.text-white');
+        if (label) label.innerText = isHidden ? 'Ocultar desglose' : 'Ver desglose completo';
     };
 
     // Persistir resultado solo si es el Host y no se ha guardado
