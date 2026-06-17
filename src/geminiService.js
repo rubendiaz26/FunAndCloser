@@ -4,8 +4,33 @@ const keyParts = ["AQ.Ab8RN6JY0", "C5jgMJwVDIV0b", "sIekv6FDJBd", "VgQvBC3jryaLB
 const getGeminiKey = () => keyParts.join("");
 
 export async function generateQuestions(topic, category) {
-    const GEMINI_API_KEY = getGeminiKey();
+    // 1. Intentar llamar al backend de Vercel (/api/generate)
+    try {
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ topic, category })
+        });
 
+        if (response.ok) {
+            const questions = await response.json();
+            if (Array.isArray(questions) && questions.length === 10) {
+                return questions;
+            }
+        }
+        
+        // Si no responde ok, pero no es un 404, lanzamos error para usar el fallback
+        if (response.status !== 404) {
+            throw new Error(`Vercel API returned status ${response.status}`);
+        }
+    } catch (error) {
+        console.warn("Backend de Vercel no disponible o falló, usando llamada directa al navegador...", error);
+    }
+
+    // 2. Fallback: Llamada directa al navegador (para pruebas en localhost:8080)
+    const GEMINI_API_KEY = getGeminiKey();
     const prompt = `Genera exactamente 10 preguntas de opción múltiple para un juego de parejas sobre el tema "${topic}" (Categoría: ${category}). 
 Cada pregunta debe tener entre 5 y 6 opciones únicas, divertidas y reveladoras.
 Responde ÚNICAMENTE con un array JSON estricto con este formato:
@@ -50,7 +75,7 @@ No incluyas markdown, ni comillas invertidas, ni texto introductorio. Solo el JS
         return questions;
 
     } catch (error) {
-        console.error("Error generando preguntas con Gemini:", error);
+        console.error("Error generando preguntas con Gemini (Directo):", error);
         console.warn("Volviendo a preguntas de respaldo...");
         return getMockQuestions(topic);
     }
