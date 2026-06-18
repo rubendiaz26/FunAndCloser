@@ -34,6 +34,12 @@ export function startQuiz(round) {
     const usernameEl = document.getElementById('quiz-username-display');
     if (usernameEl && myName) usernameEl.innerText = myName;
 
+    // Show category and topic
+    const categoryEl = document.getElementById('quiz-category-display');
+    if (categoryEl && state.sessionData?.category) {
+        categoryEl.innerText = `${state.sessionData.category}: ${state.sessionData.topic}`;
+    }
+
     renderQuestion();
 }
 

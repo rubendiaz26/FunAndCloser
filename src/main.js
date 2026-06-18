@@ -298,11 +298,20 @@ async function onSessionUpdate(sessionData) {
         
         // Solo el Host Técnico hace la llamada a la API
         if (state.role === 'host') {
-            const questions = await generateQuestions(sessionData.topic, sessionData.category);
+            const category = sessionData.category;
+            const usedQuestions = sessionData.usedQuestions?.[category] || [];
+            
+            const questions = await generateQuestions(sessionData.topic, category, usedQuestions);
+            
+            // Extraer solo el texto de las preguntas nuevas para guardar en el historial
+            const newQuestionsTexts = questions.map(q => q.question);
+            const updatedUsedQuestions = [...usedQuestions, ...newQuestionsTexts];
+
             // Guardar preguntas en caché local por si hay pérdida de conexión
             localStorage.setItem(`fac_questions_${state.sessionCode}`, JSON.stringify(questions));
             await updateDoc(doc(db, "sessions", state.sessionCode), { 
                 questions: questions,
+                [`usedQuestions.${category}`]: updatedUsedQuestions,
                 status: 'round1'
             });
         }

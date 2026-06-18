@@ -64,22 +64,10 @@
         <div class="absolute bottom-24 right-5 text-lg animate-pulse z-20" style="animation-duration: 5s;">✨</div>
 
         <!-- Título superpuesto en la parte superior -->
-        <div class="absolute inset-x-0 top-0 z-20 text-center pt-10 px-6">
-          <h1 class="font-playfair font-bold text-white leading-none drop-shadow-[0_2px_16px_rgba(255,107,157,0.7)]"
-              style="font-size: clamp(2.8rem, 11vw, 4rem);">
-            <span style="background: linear-gradient(135deg, #FF6B9D, #e040fb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Fun</span><span style="color: #C77DFF;">&amp;</span><span style="background: linear-gradient(135deg, #e040fb, #FF6B9D); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Closer</span>
-          </h1>
-
-          <!-- Separador con corazón -->
-          <div class="flex items-center justify-center gap-2 mt-2 mb-2">
-            <div class="h-px w-8 opacity-50" style="background: linear-gradient(to right, transparent, #FF6B9D);"></div>
-            <span style="color: #FF6B9D; font-size: 10px;">❤</span>
-            <div class="h-px w-8 opacity-50" style="background: linear-gradient(to left, transparent, #FF6B9D);"></div>
-          </div>
-
-          <p class="text-white text-sm font-light leading-snug drop-shadow-lg">
-            Descubre nuevas formas de <span style="color: #FF6B9D; font-weight: 600;">conectar</span> con tu pareja ❤️
-          </p>
+        <div class="absolute inset-x-0 top-0 z-20 text-center pt-6 px-4">
+          <img src="app_logo_alpha.png" alt="Fun & Closer Logo"
+               class="w-full max-w-[300px] mx-auto object-contain"
+               style="filter: drop-shadow(0 4px 12px rgba(255,107,157,0.4));">
         </div>
 
         <!-- Tarjetas de características flotando en la zona baja del hero -->
@@ -421,6 +409,7 @@
           </div>
         </div>
         <p class="text-[10px] font-bold uppercase tracking-widest text-center mb-1" id="quiz-round-title" style="color: #C77DFF;">Ronda 1 · Sobre ti</p>
+        <p class="text-[11px] font-semibold text-gray-400 text-center mb-3" id="quiz-category-display">Categoría: ...</p>
         <h2 class="font-playfair text-xl text-white text-center leading-snug" id="quiz-question">¿Cargando pregunta...?</h2>
       </div>
 

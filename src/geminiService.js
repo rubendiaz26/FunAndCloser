@@ -3,7 +3,7 @@
 const keyParts = ["AQ.Ab8RN6JY0", "C5jgMJwVDIV0b", "sIekv6FDJBd", "VgQvBC3jryaLBnAgA"];
 const getGeminiKey = () => keyParts.join("");
 
-export async function generateQuestions(topic, category) {
+export async function generateQuestions(topic, category, usedQuestions = []) {
     // 1. Intentar llamar al backend de Vercel (/api/generate)
     try {
         const response = await fetch('/api/generate', {
@@ -11,7 +11,7 @@ export async function generateQuestions(topic, category) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ topic, category })
+            body: JSON.stringify({ topic, category, usedQuestions })
         });
 
         if (response.ok) {
@@ -31,7 +31,11 @@ export async function generateQuestions(topic, category) {
 
     // 2. Fallback: Llamada directa al navegador (para pruebas en localhost:8080)
     const GEMINI_API_KEY = getGeminiKey();
-    const prompt = `Genera exactamente 10 preguntas de opción múltiple para un juego de parejas sobre el tema "${topic}" (Categoría: ${category}). 
+    let exclusionText = '';
+    if (usedQuestions.length > 0) {
+        exclusionText = `\nNO repitas ninguna de estas preguntas que ya se hicieron anteriormente:\n- ${usedQuestions.join('\n- ')}\n`;
+    }
+    const prompt = `Genera exactamente 10 preguntas de opción múltiple para un juego de parejas sobre el tema "${topic}" (Categoría: ${category}). ${exclusionText}
 Cada pregunta debe tener entre 5 y 6 opciones únicas, divertidas y reveladoras.
 Responde ÚNICAMENTE con un array JSON estricto con este formato:
 [

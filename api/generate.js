@@ -3,14 +3,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { topic, category } = req.body;
+  const { topic, category, usedQuestions = [] } = req.body;
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
   if (!GEMINI_API_KEY) {
     return res.status(500).json({ error: 'Server configuration error: GEMINI_API_KEY is not defined.' });
   }
 
-  const prompt = `Genera exactamente 10 preguntas de opción múltiple para un juego de parejas sobre el tema "${topic}" (Categoría: ${category}). 
+  let exclusionText = '';
+  if (usedQuestions.length > 0) {
+      exclusionText = `\nNO repitas ninguna de estas preguntas que ya se hicieron anteriormente:\n- ${usedQuestions.join('\n- ')}\n`;
+  }
+
+  const prompt = `Genera exactamente 10 preguntas de opción múltiple para un juego de parejas sobre el tema "${topic}" (Categoría: ${category}). ${exclusionText}
 Cada pregunta debe tener entre 5 y 6 opciones únicas, divertidas y reveladoras.
 Responde ÚNICAMENTE con un array JSON estricto con este formato:
 [
