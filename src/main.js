@@ -3,7 +3,7 @@ import { state } from './state.js';
 import { createSession, joinSession, listenToSession } from './session.js';
 import { isConfigured, db } from './firebase.js';
 import { updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { renderRoulette, spinRoulette, animateRouletteTo } from './roulette.js';
+import { renderRoulette, spinRoulette, animateRouletteTo, resetRouletteAngle } from './roulette.js';
 import { generateQuestions } from './geminiService.js';
 import { startQuiz } from './quiz.js';
 import { renderResults, updateDebateBadges } from './results.js';
@@ -209,20 +209,41 @@ function showRound2Intro() {
     showView(views.round2Intro);
     const btnStartRound2 = document.getElementById('btn-start-round2');
     const round2WaitingMsg = document.getElementById('round2-waiting-msg');
-    if (state.role === 'host') {
+
+    // Quien giró la ruleta es quien inicia la Ronda 2
+    const isSpinner = state.role === state.sessionData?.spinnerTurn;
+
+    if (isSpinner) {
         btnStartRound2.classList.remove('hidden');
         round2WaitingMsg.classList.add('hidden');
+        btnStartRound2.disabled = false;
+        btnStartRound2.innerText = 'Iniciar Ronda 2';
         // Evitar añadir múltiples listeners con .onclick = fn
         btnStartRound2.onclick = async () => {
             btnStartRound2.disabled = true;
             btnStartRound2.innerText = 'Iniciando...';
-            await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'round2' });
+            try {
+                await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'round2' });
+            } catch (error) {
+                console.error("Error updating to round2:", error);
+                alert("Hubo un error de conexión al iniciar la Ronda 2. Reintentando...");
+                btnStartRound2.disabled = false;
+                btnStartRound2.innerText = 'Iniciar Ronda 2';
+            }
         };
     } else {
         btnStartRound2.classList.add('hidden');
         round2WaitingMsg.classList.remove('hidden');
+        // Actualizar el mensaje de espera para que sea claro quién debe iniciar
+        const spinnerName = state.sessionData?.spinnerTurn === 'host'
+            ? state.sessionData?.playerNames?.host
+            : state.sessionData?.playerNames?.guest;
+        round2WaitingMsg.innerText = spinnerName
+            ? `Esperando a que ${spinnerName} inicie la Ronda 2...`
+            : 'Esperando a que el otro jugador inicie la Ronda 2...';
     }
 }
+
 
 async function onSessionUpdate(sessionData) {
     // Siempre actualizar el estado actual para que los eventos locales puedan leerlo
@@ -240,9 +261,10 @@ async function onSessionUpdate(sessionData) {
     // Prevents re-triggering logic for the same status multiple times
     const isNewStatus = lastProcessedStatus !== sessionData.status;
     
-    // Transición a la ruleta
+    // Transición a la ruleta (también resetea el ciclo del juego anterior)
     if (sessionData.status === 'roulette_waiting' && isNewStatus) {
         lastProcessedStatus = sessionData.status;
+        resetRouletteAngle(); // Resetear ángulo acumulado para nueva partida
         showView(views.roulette);
         renderRoulette();
         const turnMsg = document.getElementById('roulette-turn-msg');
@@ -299,9 +321,13 @@ async function onSessionUpdate(sessionData) {
         // Solo el Host Técnico hace la llamada a la API
         if (state.role === 'host') {
             const category = sessionData.category;
-            const usedQuestions = sessionData.usedQuestions?.[category] || [];
+            const topic = sessionData.topic;
+            // Usamos el topic como clave (sin emojis, compatible con Firestore field paths)
+            // Esto garantiza variedad: misma categoría + distinto topic = preguntas distintas
+            const topicKey = topic.replace(/\s+/g, '_').replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ0-9_]/g, '');
+            const usedQuestions = sessionData.usedQuestions?.[topicKey] || [];
             
-            const questions = await generateQuestions(sessionData.topic, category, usedQuestions);
+            const questions = await generateQuestions(topic, category, usedQuestions);
             
             // Extraer solo el texto de las preguntas nuevas para guardar en el historial
             const newQuestionsTexts = questions.map(q => q.question);
@@ -311,7 +337,7 @@ async function onSessionUpdate(sessionData) {
             localStorage.setItem(`fac_questions_${state.sessionCode}`, JSON.stringify(questions));
             await updateDoc(doc(db, "sessions", state.sessionCode), { 
                 questions: questions,
-                [`usedQuestions.${category}`]: updatedUsedQuestions,
+                [`usedQuestions.${topicKey}`]: updatedUsedQuestions,
                 status: 'round1'
             });
         }
@@ -329,22 +355,24 @@ async function onSessionUpdate(sessionData) {
     }
 
     // Guardar respuestas de Ronda 1 en caché local
-    if (sessionData.status === 'round1' && sessionData.round1?.[state.uid]) {
-        localStorage.setItem(`fac_r1_${state.sessionCode}_${state.uid}`, JSON.stringify(sessionData.round1[state.uid]));
+    if (sessionData.status === 'round1' && sessionData.round1?.[state.role]) {
+        localStorage.setItem(`fac_r1_${state.sessionCode}_${state.uid}`, JSON.stringify(sessionData.round1[state.role]));
     }
 
     // Syncing de Ronda 1: Comprobar si ambos terminaron → ir a pantalla intermedia
     if (sessionData.status === 'round1' && state.role === 'host') {
-        const p1 = sessionData.round1?.[sessionData.hostId]?.length || 0;
-        const p2 = sessionData.round1?.[sessionData.guestId]?.length || 0;
-        if (p1 === 10 && p2 === 10) {
+        const p1Finished = sessionData.round1Finished?.['host'] === true;
+        const p2Finished = sessionData.round1Finished?.['guest'] === true;
+        if (p1Finished && p2Finished) {
             await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'round2_intro' });
         }
     }
 
-    // Pantalla intermedia antes de Ronda 2 (sin isNewStatus para que funcione aunque se llegue tarde)
-    if (sessionData.status === 'round2_intro') {
-        if (isNewStatus) lastProcessedStatus = sessionData.status;
+    // Pantalla intermedia antes de Ronda 2
+    // IMPORTANTE: usar isNewStatus aquí para que no sobreescriba la vista del quiz
+    // cuando Firestore dispara snapshots intermedios.
+    if (sessionData.status === 'round2_intro' && isNewStatus) {
+        lastProcessedStatus = sessionData.status;
         showRound2Intro();
     }
 
@@ -352,19 +380,24 @@ async function onSessionUpdate(sessionData) {
     if (sessionData.status === 'round2' && isNewStatus) {
         lastProcessedStatus = sessionData.status;
         showView(views.quiz);
-        startQuiz(2);
+        try {
+            startQuiz(2);
+        } catch (error) {
+            console.error("Error in startQuiz(2):", error);
+            alert("Ocurrió un error al cargar la Ronda 2. Por favor, recarga la página.");
+        }
     }
 
     // Guardar respuestas de Ronda 2 en caché local
-    if (sessionData.status === 'round2' && sessionData.round2?.[state.uid]) {
-        localStorage.setItem(`fac_r2_${state.sessionCode}_${state.uid}`, JSON.stringify(sessionData.round2[state.uid]));
+    if (sessionData.status === 'round2' && sessionData.round2?.[state.role]) {
+        localStorage.setItem(`fac_r2_${state.sessionCode}_${state.uid}`, JSON.stringify(sessionData.round2[state.role]));
     }
 
     // Syncing de Ronda 2: Comprobar si ambos terminaron
     if (sessionData.status === 'round2' && state.role === 'host') {
-        const p1 = sessionData.round2?.[sessionData.hostId]?.length || 0;
-        const p2 = sessionData.round2?.[sessionData.guestId]?.length || 0;
-        if (p1 === 10 && p2 === 10) {
+        const p1Finished = sessionData.round2Finished?.['host'] === true;
+        const p2Finished = sessionData.round2Finished?.['guest'] === true;
+        if (p1Finished && p2Finished) {
             await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'results' });
         }
     }

@@ -10,10 +10,27 @@ export const CATEGORIES = [
     { name: "Divertidos y Cotidianos", emoji: "🎭", color: "#06D6A0",
       topics: ["El Socio Ideal", "Intercambio de Cuerpos", "Cuestión de Gustos", "Terapia de Risas"] },
     { name: "Para Soñar Juntos", emoji: "☀️", color: "#4CC9F0",
-      topics: ["La Casa de tus Sueños", "Próxima Parada (Viajes)", "Metas Compartidas"] },
+      topics: ["La Casa de tus Sueños", "Próxima Parada", "Metas Compartidas"] },
     { name: "Picantes y Atrevidos", emoji: "🌶️", color: "#EF233C",
-      topics: ["Modo Clandestino", "Fantasías sobre la Mesa", "Quién Toma el Control", "Noche de Cita 5 Estrellas"] }
+      topics: ["Modo Clandestino", "Fantasías sobre la Mesa", "Quién Toma el Control", "Noche de Cita 5 Estrellas"] },
+    { name: "Cultura General", emoji: "🧠", color: "#F4A261",
+      topics: ["Cine y Series", "Música del Mundo", "Historia y Curiosidades", "Ciencia y Tecnología"] },
+    { name: "Geografía", emoji: "🌍", color: "#2EC4B6",
+      topics: ["Capitales del Mundo", "Países y Fronteras", "Maravillas Naturales", "Culturas y Tradiciones"] }
 ];
+
+
+// Acumulador de rotación para que la rueda siempre gire hacia adelante (sentido horario)
+let cumulativeAngle = 0;
+
+export function resetRouletteAngle() {
+    cumulativeAngle = 0;
+    const wheel = document.getElementById('roulette-wheel');
+    if (wheel) {
+        wheel.style.transition = 'none';
+        wheel.style.transform = 'rotate(0deg)';
+    }
+}
 
 export function renderRoulette() {
     const wheel = document.getElementById('roulette-wheel');
@@ -64,47 +81,66 @@ export async function spinRoulette() {
     // Deshabilitar botón
     btnSpin.disabled = true;
 
-    // Calcular giro: 5 a 10 vueltas completas + un ángulo aleatorio
-    const extraSpins = 360 * (5 + Math.floor(Math.random() * 5));
+    // Calcular giro: mínimo 5 vueltas completas + un ángulo aleatorio (siempre positivo = horario)
+    const extraSpins = 360 * (5 + Math.floor(Math.random() * 4)); // 5 a 8 vueltas
     const randomAngle = Math.floor(Math.random() * 360);
-    const totalAngle = extraSpins + randomAngle;
+    const deltaAngle = extraSpins + randomAngle; // delta positivo siempre gira en horario
 
-    // Identificar el sector ganador
+    // El ángulo total acumulado desde el inicio
+    const newCumulativeAngle = cumulativeAngle + deltaAngle;
+
+    // Identificar el sector ganador basado en el delta
     const numSectors = CATEGORIES.length;
     const arc = 360 / numSectors;
     
-    // La ruleta CSS gira en sentido horario. 
-    // El puntero está en la parte superior (-90 grados o 270 grados en círculo estándar).
-    // Con la SVG rotada -90, el sector 0 empieza en la derecha (0 grados) pero ahora está arriba.
-    // Necesitamos mapear el ángulo final a la categoría.
-    const normalizedAngle = (360 - (totalAngle % 360)) % 360; 
+    // La ruleta CSS gira en sentido horario.
+    // El puntero está en la parte superior.
+    // normalizedAngle = dónde queda el puntero dentro de la ruleta.
+    const normalizedAngle = (360 - (newCumulativeAngle % 360)) % 360;
     const winningIndex = Math.floor(normalizedAngle / arc);
     const winningCategory = CATEGORIES[winningIndex];
 
     // Seleccionar tema específico dentro de la categoría
-    let winningTopic = "Tema Sorpresa";
-    if (winningCategory.topics.length > 1) {
+    let winningTopic;
+    if (winningCategory.topics.length === 1 && winningCategory.topics[0] === 'Sorpresa') {
+        // En modo Sorpresa: elegir un topic real al azar de TODAS las categorías
+        // (el usuario no sabe cuál, solo ve "Sorpresa")
+        const allTopics = CATEGORIES
+            .filter(c => !(c.topics.length === 1 && c.topics[0] === 'Sorpresa'))
+            .flatMap(c => c.topics);
+        winningTopic = allTopics[Math.floor(Math.random() * allTopics.length)];
+    } else {
         winningTopic = winningCategory.topics[Math.floor(Math.random() * winningCategory.topics.length)];
     }
 
-    // Actualizar Firebase para sincronizar
+    // Actualizar Firebase para sincronizar (guardamos el delta para que animateRouletteTo sepa cuánto girar)
     const sessionRef = doc(db, "sessions", state.sessionCode);
     await updateDoc(sessionRef, {
         status: "spinning",
-        rouletteAngle: totalAngle,
+        rouletteAngle: newCumulativeAngle,  // ángulo total absoluto
         category: winningCategory.name,
         topic: winningTopic,
         topicEmoji: winningCategory.emoji
     });
 }
 
-export function animateRouletteTo(angle, onComplete) {
+export function animateRouletteTo(targetAngle, onComplete) {
     const wheel = document.getElementById('roulette-wheel');
-    // Aplicar transformación
-    wheel.style.transform = `rotate(${angle}deg)`;
     
-    // Esperar a que termine la transición CSS (4s configurado en HTML)
+    // Asegurarnos de que el ángulo objetivo sea mayor al actual (siempre giro horario)
+    // Si por algún motivo targetAngle <= cumulativeAngle, añadimos vueltas extra
+    let finalAngle = targetAngle;
+    if (finalAngle <= cumulativeAngle) {
+        finalAngle = cumulativeAngle + 360 * 5 + (targetAngle % 360);
+    }
+
+    // Reactivar transición y aplicar
+    wheel.style.transition = 'transform 5.5s cubic-bezier(0.17, 0.67, 0.12, 1.0)';
+    wheel.style.transform = `rotate(${finalAngle}deg)`;
+    cumulativeAngle = finalAngle;
+    
+    // Esperar a que termine la transición CSS (5.5s)
     setTimeout(() => {
         if (onComplete) onComplete();
-    }, 4200); // 200ms extra de margen
+    }, 5700); // 200ms extra de margen
 }

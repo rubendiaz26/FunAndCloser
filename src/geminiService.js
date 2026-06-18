@@ -16,14 +16,14 @@ export async function generateQuestions(topic, category, usedQuestions = []) {
 
         if (response.ok) {
             const questions = await response.json();
-            if (Array.isArray(questions) && questions.length === 10) {
+            if (Array.isArray(questions) && questions.length >= 5) {
                 return questions;
             }
         }
         
-        // Si no responde ok, pero no es un 404, lanzamos error para usar el fallback
-        if (response.status !== 404) {
-            throw new Error(`Vercel API returned status ${response.status}`);
+        // Si el servidor retornó error (500), lanzar para usar fallback directo
+        if (!response.ok && response.status !== 404) {
+            throw new Error(`Server API returned status ${response.status}`);
         }
     } catch (error) {
         console.warn("Backend de Vercel no disponible o falló, usando llamada directa al navegador...", error);
@@ -35,17 +35,43 @@ export async function generateQuestions(topic, category, usedQuestions = []) {
     if (usedQuestions.length > 0) {
         exclusionText = `\nNO repitas ninguna de estas preguntas que ya se hicieron anteriormente:\n- ${usedQuestions.join('\n- ')}\n`;
     }
-    const prompt = `Genera exactamente 10 preguntas de opción múltiple para un juego de parejas sobre el tema "${topic}" (Categoría: ${category}). ${exclusionText}
-Cada pregunta debe tener entre 5 y 6 opciones únicas, divertidas y reveladoras.
-Responde ÚNICAMENTE con un array JSON estricto con este formato:
+    const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(category);
+
+    const contextLine = isPersonalCategory
+        ? `Las preguntas deben asumir que la pareja NO vive junta (relación a distancia) y deben ser íntimas, personales y relevantes para su dinámica como pareja.`
+        : `Las preguntas son de cultura y conocimiento general sobre el tema "${topic}". Déjalas entretenidas y accesibles para cualquier persona.`;
+
+    const prompt = `Eres un diseñador de juegos experto. Crea exactamente 10 preguntas de opción múltiple para el tema "${topic}" (Categoría: ${category}). ${exclusionText}
+
+${contextLine}
+
+REGLAS DE FORMATO (MUY IMPORTANTES):
+- Las preguntas deben ser CORTAS y DIRECTAS: máximo 15 palabras.
+- NO uses paréntesis en ninguna pregunta ni opción.
+- NO uses frases entre guiones que hagan la pregunta más larga.
+- Escribe en primera persona cuando aplique ("Cuando extraño a mi pareja...").
+- Las opciones deben ser breves: máximo 10 palabras por opción.
+- El 30-40% deben ser multiSelect: true, solo cuando tiene sentido elegir varias.
+
+EJEMPLOS de preguntas CORRECTAS (cortas y sin paréntesis):
+- "¿Qué hago cuando extraño a mi pareja sin decirlo?"
+- "Si nos reencontáramos hoy, lo primero que haría es..."
+- "¿Cuál es la capital de Brasil?"
+- "¿Qué país tiene más idiomas oficiales?"
+
+EJEMPLOS de preguntas INCORRECTAS (demasiado largas o con paréntesis):
+- "Cuando pienso en los pequeños viajes que hacemos juntos en nuestra mente (como hablar de nuestros planes futuros), lo que más valoro es..."
+
+Responde ÚNICAMENTE con un array JSON estricto:
 [
-  { "question": "...", "options": ["A", "B", "C", "D", "E"] },
+  { "question": "...", "options": ["opción A", "opción B", "opción C", "opción D", "opción E"], "multiSelect": false },
+  { "question": "...", "options": ["opción A", "opción B", "opción C", "opción D", "opción E"], "multiSelect": true },
   ...
 ]
-No incluyas markdown, ni comillas invertidas, ni texto introductorio. Solo el JSON válido.`;
+Solo el JSON. Sin markdown, sin comillas invertidas, sin texto extra.`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -65,21 +91,36 @@ No incluyas markdown, ni comillas invertidas, ni texto introductorio. Solo el JS
             throw new Error(data.error.message);
         }
 
-        let jsonString = data.candidates[0].content.parts[0].text;
+        let rawText = data.candidates[0].content.parts[0].text;
         
-        // Limpiar posible formato markdown que a veces Gemini incluye
-        jsonString = jsonString.replace(/```json/gi, '').replace(/```/g, '').trim();
+        // Extraer el primer array JSON válido usando conteo de brackets
+        // (más robusto que lastIndexOf cuando el modelo genera contenido extra al final)
+        let questions = null;
+        const firstBracket = rawText.indexOf('[');
+        if (firstBracket !== -1) {
+            let depth = 0;
+            let endPos = -1;
+            for (let i = firstBracket; i < rawText.length; i++) {
+                if (rawText[i] === '[') depth++;
+                else if (rawText[i] === ']') {
+                    depth--;
+                    if (depth === 0) { endPos = i; break; }
+                }
+            }
+            if (endPos !== -1) {
+                questions = JSON.parse(rawText.substring(firstBracket, endPos + 1));
+            }
+        }
         
-        const questions = JSON.parse(jsonString);
-        
-        if (!Array.isArray(questions) || questions.length !== 10) {
-            throw new Error("El formato de respuesta no contiene 10 preguntas.");
+        if (!Array.isArray(questions) || questions.length < 5) {
+            throw new Error("El formato de respuesta no contiene suficientes preguntas.");
         }
 
-        return questions;
+        return questions.slice(0, 10);
 
     } catch (error) {
         console.error("Error generando preguntas con Gemini (Directo):", error);
+        alert("Error de Gemini: " + error.message);
         console.warn("Volviendo a preguntas de respaldo...");
         return getMockQuestions(topic);
     }

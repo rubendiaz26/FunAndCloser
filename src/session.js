@@ -33,6 +33,9 @@ export async function createSession(hostName) {
         questions: [],
         round1: {},
         round2: {},
+        round1Finished: {},
+        round2Finished: {},
+        usedQuestions: {},
         scores: { matchA: 0, matchB: 0, total: 0 }
     });
 

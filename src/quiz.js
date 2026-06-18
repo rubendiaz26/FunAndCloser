@@ -4,13 +4,35 @@ import { db } from './firebase.js';
 
 let currentQuestionIndex = 0;
 let currentRound = 1;
-let selectedOptionIndex = null;
+let selectedOptions = new Set();
+let localAnswers = [];
 const TOTAL_QUESTIONS = 10;
 
 export function startQuiz(round) {
     currentRound = round;
-    currentQuestionIndex = 0;
-    selectedOptionIndex = null;
+    selectedOptions.clear();
+
+    const roundKey = currentRound === 1 ? 'round1' : 'round2';
+    // Recuperar respuestas anteriores si existen (ej. por reconexión)
+    const existingAnswers = state.sessionData?.[roundKey]?.[state.role];
+    if (Array.isArray(existingAnswers)) {
+        localAnswers = [...existingAnswers];
+        while (localAnswers.length < 10) localAnswers.push(null);
+        const firstUnanswered = localAnswers.findIndex(ans => ans === null || ans === undefined);
+        currentQuestionIndex = firstUnanswered !== -1 ? firstUnanswered : 0;
+    } else if (existingAnswers && typeof existingAnswers === 'object') {
+        localAnswers = Array(10).fill(null);
+        for (let i = 0; i < 10; i++) {
+            if (existingAnswers[i] !== undefined) {
+                localAnswers[i] = existingAnswers[i];
+            }
+        }
+        const firstUnanswered = localAnswers.findIndex(ans => ans === null || ans === undefined);
+        currentQuestionIndex = firstUnanswered !== -1 ? firstUnanswered : 0;
+    } else {
+        localAnswers = Array(10).fill(null);
+        currentQuestionIndex = 0;
+    }
 
     // Update round label and icon
     const roundTitle = document.getElementById('quiz-round-title');
@@ -68,7 +90,7 @@ function renderQuestion() {
         return;
     }
 
-    selectedOptionIndex = null;
+    selectedOptions.clear();
     const q = questions[currentQuestionIndex];
 
     // Counter & hearts
@@ -76,7 +98,11 @@ function renderQuestion() {
     renderHearts(currentQuestionIndex + 1, TOTAL_QUESTIONS);
 
     // Question text
-    document.getElementById('quiz-question').innerText = q.question;
+    let qTextHtml = q.question;
+    if (q.multiSelect) {
+        qTextHtml += '<br><span class="text-sm text-[#FF6B9D] font-normal opacity-90 block mt-2">(Puedes elegir hasta 3 opciones)</span>';
+    }
+    document.getElementById('quiz-question').innerHTML = qTextHtml;
 
     // Options
     const optionsContainer = document.getElementById('quiz-options');
@@ -108,20 +134,24 @@ function renderQuestion() {
         btn.appendChild(textSpan);
         btn.appendChild(checkCircle);
 
+        if (q.multiSelect) {
+            checkCircle.style.borderRadius = '6px';
+        }
+
         btn.addEventListener('mouseenter', () => {
-            if (selectedOptionIndex !== index) {
+            if (!selectedOptions.has(index)) {
                 btn.style.borderColor = 'rgba(255,107,157,0.5)';
                 btn.style.background = 'rgba(255,107,157,0.07)';
             }
         });
         btn.addEventListener('mouseleave', () => {
-            if (selectedOptionIndex !== index) {
+            if (!selectedOptions.has(index)) {
                 btn.style.borderColor = 'rgba(255,255,255,0.10)';
                 btn.style.background = 'rgba(255,255,255,0.04)';
             }
         });
 
-        btn.onclick = () => handleAnswerOptionClick(index, btn, checkCircle);
+        btn.onclick = () => handleAnswerOptionClick(index, btn, checkCircle, q.multiSelect);
         optionsContainer.appendChild(btn);
     });
 
@@ -132,56 +162,105 @@ function renderQuestion() {
         btnNext.style.opacity = '0.4';
         btnNext.style.cursor = 'not-allowed';
         btnNext.onclick = null;
+        if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
+            btnNext.innerHTML = `Terminar la ronda <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+        } else {
+            btnNext.innerHTML = `Siguiente pregunta <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>`;
+        }
     }
 }
 
-async function handleAnswerOptionClick(optionIndex, btnElement, checkCircle) {
+async function handleAnswerOptionClick(optionIndex, btnElement, checkCircle, isMultiSelect) {
     const allBtns = document.getElementById('quiz-options').querySelectorAll('button');
 
-    // Reset all
-    allBtns.forEach(b => {
-        b.style.borderColor = 'rgba(255,255,255,0.10)';
-        b.style.background  = 'rgba(255,255,255,0.04)';
-        const circle = b.querySelector('div');
-        if (circle) {
-            circle.style.background = 'transparent';
-            circle.style.borderColor = 'rgba(255,255,255,0.2)';
-            circle.innerHTML = '';
+    if (isMultiSelect) {
+        if (selectedOptions.has(optionIndex)) {
+            selectedOptions.delete(optionIndex);
+            btnElement.style.borderColor = 'rgba(255,255,255,0.10)';
+            btnElement.style.background  = 'rgba(255,255,255,0.04)';
+            checkCircle.style.background = 'transparent';
+            checkCircle.style.borderColor = 'rgba(255,255,255,0.2)';
+            checkCircle.innerHTML = '';
+        } else {
+            if (selectedOptions.size >= 3) return; // limit reached
+            selectedOptions.add(optionIndex);
+            btnElement.style.borderColor = '#FF6B9D';
+            btnElement.style.background  = 'rgba(255,107,157,0.12)';
+            checkCircle.style.background = '#FF6B9D';
+            checkCircle.style.borderColor = '#FF6B9D';
+            checkCircle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
         }
-    });
+    } else {
+        selectedOptions.clear();
+        selectedOptions.add(optionIndex);
 
-    // Highlight selected
-    selectedOptionIndex = optionIndex;
-    btnElement.style.borderColor = '#FF6B9D';
-    btnElement.style.background  = 'rgba(255,107,157,0.12)';
-    checkCircle.style.background = '#FF6B9D';
-    checkCircle.style.borderColor = '#FF6B9D';
-    checkCircle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        // Reset all
+        allBtns.forEach(b => {
+            b.style.borderColor = 'rgba(255,255,255,0.10)';
+            b.style.background  = 'rgba(255,255,255,0.04)';
+            const circle = b.querySelector('div');
+            if (circle) {
+                circle.style.background = 'transparent';
+                circle.style.borderColor = 'rgba(255,255,255,0.2)';
+                circle.innerHTML = '';
+            }
+        });
 
-    // Save to Firebase
-    const roundKey = currentRound === 1 ? 'round1' : 'round2';
-    const fieldPath = `${roundKey}.${state.uid}`;
-    const currentAnswers = state.sessionData[roundKey]?.[state.uid] || [];
-    currentAnswers[currentQuestionIndex] = optionIndex;
+        // Highlight selected
+        btnElement.style.borderColor = '#FF6B9D';
+        btnElement.style.background  = 'rgba(255,107,157,0.12)';
+        checkCircle.style.background = '#FF6B9D';
+        checkCircle.style.borderColor = '#FF6B9D';
+        checkCircle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    }
 
-    const sessionRef = doc(db, "sessions", state.sessionCode);
-    await updateDoc(sessionRef, { [fieldPath]: currentAnswers });
+    // Guardar respuesta localmente (NO subir a Firebase en cada clic para evitar
+    // que Firestore reciba arrays con null que corrompen la estructura de datos)
+    localAnswers[currentQuestionIndex] = isMultiSelect ? Array.from(selectedOptions) : optionIndex;
 
-    // Unlock "Siguiente pregunta" button
+    // Unlock "Siguiente pregunta" button inmediatamente
     const btnNext = document.getElementById('btn-next-question');
     if (btnNext) {
-        btnNext.disabled = false;
-        btnNext.style.opacity = '1';
-        btnNext.style.cursor = 'pointer';
-        btnNext.onclick = () => {
-            currentQuestionIndex++;
-            renderQuestion();
-        };
+        if (selectedOptions.size > 0) {
+            btnNext.disabled = false;
+            btnNext.style.opacity = '1';
+            btnNext.style.cursor = 'pointer';
+            btnNext.onclick = () => {
+                currentQuestionIndex++;
+                renderQuestion();
+            };
+        } else {
+            btnNext.disabled = true;
+            btnNext.style.opacity = '0.4';
+            btnNext.style.cursor = 'not-allowed';
+            btnNext.onclick = null;
+        }
     }
 }
 
-function finishQuizRound() {
+async function finishQuizRound() {
     document.getElementById('quiz-progress') && (document.getElementById('quiz-progress').style.width = '100%');
     renderHearts(TOTAL_QUESTIONS, TOTAL_QUESTIONS);
+    
+    const roundKey = currentRound === 1 ? 'round1' : 'round2';
+    const sessionRef = doc(db, "sessions", state.sessionCode);
+
+    // Limpiar nulls antes de subir: reemplazar con -1 como sentinela
+    // para evitar que Firestore convierta el array en un mapa de objetos.
+    // Solo subimos respuestas que realmente se respondieron.
+    const cleanAnswers = localAnswers.map(a => {
+        if (a === null || a === undefined) return -1; // no debería ocurrir al terminar, pero por seguridad
+        return a;
+    });
+
+    try {
+        await updateDoc(sessionRef, {
+            [`${roundKey}.${state.role}`]: Object.assign({}, cleanAnswers),
+            [`${roundKey}Finished.${state.role}`]: true
+        });
+    } catch (e) {
+        console.error("Error guardando respuestas finales:", e);
+    }
+
     window.dispatchEvent(new Event('quizRoundFinished'));
 }
