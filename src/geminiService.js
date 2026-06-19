@@ -38,8 +38,12 @@ export async function generateQuestions(topic, category, usedQuestions = []) {
     const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(category);
 
     const contextLine = isPersonalCategory
-        ? `Las preguntas deben asumir que la pareja NO vive junta (relación a distancia) y deben ser íntimas, personales y relevantes para su dinámica como pareja.`
+        ? `Las preguntas deben considerar que la pareja pasa la semana separados por trabajo, pero se ven los fines de semana (con un máximo de 2 semanas sin verse). Deben ser íntimas, personales y relevantes para su dinámica como pareja.`
         : `Las preguntas son de cultura y conocimiento general sobre el tema "${topic}". Déjalas entretenidas y accesibles para cualquier persona.`;
+
+    const jsonFormat = isPersonalCategory 
+        ? `[\n  { "question": "...", "options": ["opción A", "opción B", "opción C", "opción D", "opción E"], "multiSelect": false },\n  { "question": "...", "options": ["opción A", "opción B", "opción C", "opción D", "opción E"], "multiSelect": true }\n]`
+        : `[\n  { "question": "...", "options": ["opción A", "opción B", "opción C", "opción D"], "multiSelect": false, "correctAnswerIndex": 0 }\n]\n(IMPORTANTE: En esta categoría objetiva incluye siempre "correctAnswerIndex" con el índice numérico de la opción correcta, de 0 al tamaño de tus opciones-1)`;
 
     const prompt = `Eres un diseñador de juegos experto. Crea exactamente 10 preguntas de opción múltiple para el tema "${topic}" (Categoría: ${category}). ${exclusionText}
 
@@ -63,11 +67,7 @@ EJEMPLOS de preguntas INCORRECTAS (demasiado largas o con paréntesis):
 - "Cuando pienso en los pequeños viajes que hacemos juntos en nuestra mente (como hablar de nuestros planes futuros), lo que más valoro es..."
 
 Responde ÚNICAMENTE con un array JSON estricto:
-[
-  { "question": "...", "options": ["opción A", "opción B", "opción C", "opción D", "opción E"], "multiSelect": false },
-  { "question": "...", "options": ["opción A", "opción B", "opción C", "opción D", "opción E"], "multiSelect": true },
-  ...
-]
+${jsonFormat}
 Solo el JSON. Sin markdown, sin comillas invertidas, sin texto extra.`;
 
     try {
@@ -120,19 +120,6 @@ Solo el JSON. Sin markdown, sin comillas invertidas, sin texto extra.`;
 
     } catch (error) {
         console.error("Error generando preguntas con Gemini (Directo):", error);
-        alert("Error de Gemini: " + error.message);
-        console.warn("Volviendo a preguntas de respaldo...");
-        return getMockQuestions(topic);
+        throw error; // Permitimos que main.js atrape el error y muestre la vista correspondiente
     }
-}
-
-function getMockQuestions(topic) {
-    const mock = [];
-    for (let i = 1; i <= 10; i++) {
-        mock.push({
-            question: `[Simulada] ¿Pregunta de prueba ${i} sobre ${topic}?`,
-            options: ["Opción 1", "Opción 2", "Opción 3", "Opción 4", "Opción 5"]
-        });
-    }
-    return mock;
 }

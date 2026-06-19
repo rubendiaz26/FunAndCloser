@@ -13,8 +13,17 @@ export function startQuiz(round) {
     selectedOptions.clear();
 
     const roundKey = currentRound === 1 ? 'round1' : 'round2';
-    // Recuperar respuestas anteriores si existen (ej. por reconexión)
-    const existingAnswers = state.sessionData?.[roundKey]?.[state.role];
+    
+    // Recuperar caché local por si hubo una recarga a mitad de la ronda
+    const cacheKey = `fac_temp_ans_${state.sessionCode}_${state.uid}_${roundKey}`;
+    let cachedAnswers = null;
+    try {
+        const rawCache = localStorage.getItem(cacheKey);
+        if (rawCache) cachedAnswers = JSON.parse(rawCache);
+    } catch(e) {}
+
+    // Recuperar respuestas anteriores si existen (caché local tiene prioridad, sino Firebase)
+    const existingAnswers = cachedAnswers || state.sessionData?.[roundKey]?.[state.role];
     if (Array.isArray(existingAnswers)) {
         localAnswers = [...existingAnswers];
         while (localAnswers.length < 10) localAnswers.push(null);
@@ -218,6 +227,11 @@ async function handleAnswerOptionClick(optionIndex, btnElement, checkCircle, isM
     // que Firestore reciba arrays con null que corrompen la estructura de datos)
     localAnswers[currentQuestionIndex] = isMultiSelect ? Array.from(selectedOptions) : optionIndex;
 
+    // Auto-guardado temporal en localStorage
+    const roundKey = currentRound === 1 ? 'round1' : 'round2';
+    const cacheKey = `fac_temp_ans_${state.sessionCode}_${state.uid}_${roundKey}`;
+    localStorage.setItem(cacheKey, JSON.stringify(localAnswers));
+
     // Unlock "Siguiente pregunta" button inmediatamente
     const btnNext = document.getElementById('btn-next-question');
     if (btnNext) {
@@ -243,6 +257,9 @@ async function finishQuizRound() {
     renderHearts(TOTAL_QUESTIONS, TOTAL_QUESTIONS);
     
     const roundKey = currentRound === 1 ? 'round1' : 'round2';
+    const cacheKey = `fac_temp_ans_${state.sessionCode}_${state.uid}_${roundKey}`;
+    localStorage.removeItem(cacheKey); // Limpiar caché temporal
+    
     const sessionRef = doc(db, "sessions", state.sessionCode);
 
     // Limpiar nulls antes de subir: reemplazar con -1 como sentinela

@@ -90,3 +90,19 @@ export function listenToSession(code, onUpdateCallback) {
         }
     });
 }
+
+export async function verifyActiveSession(code) {
+    if (!isConfigured) return true;
+    try {
+        const sessionRef = doc(db, "sessions", code);
+        const docSnap = await getDoc(sessionRef);
+        if (docSnap.exists()) {
+            return docSnap.data();
+        }
+        return null;
+    } catch (e) {
+        console.error("Error verifying active session:", e);
+        return null;
+    }
+}
+

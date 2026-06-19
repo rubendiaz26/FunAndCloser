@@ -1,6 +1,6 @@
 import { loginWithGoogle, loginAnonymously, onAuthStateChanged } from './auth.js';
 import { state } from './state.js';
-import { createSession, joinSession, listenToSession } from './session.js';
+import { createSession, joinSession, listenToSession, verifyActiveSession } from './session.js';
 import { isConfigured, db } from './firebase.js';
 import { updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { renderRoulette, spinRoulette, animateRouletteTo, resetRouletteAngle } from './roulette.js';
@@ -22,7 +22,8 @@ const views = {
     waitingPartner: document.getElementById('view-waiting-partner'),
     round2Intro: document.getElementById('view-round2-intro'),
     results: document.getElementById('view-results'),
-    history: document.getElementById('view-history')
+    history: document.getElementById('view-history'),
+    generation_error: document.getElementById('view-generation-error')
 };
 
 const btnLoginGoogle = document.getElementById('btn-login-google');
@@ -37,6 +38,8 @@ const btnSpin = document.getElementById('btn-spin');
 const btnViewHistoryHome = document.getElementById('btn-view-history-home');
 const btnViewHistory = document.getElementById('btn-view-history');
 const btnBackHome = document.getElementById('btn-back-home');
+const btnExitGame = document.getElementById('btn-exit-game');
+const btnExitQuiz = document.getElementById('btn-exit-quiz');
 
 let lastProcessedStatus = null;
 
@@ -69,7 +72,7 @@ async function init() {
     }
 
     // Escuchar cambios en la sesión de autenticación
-    onAuthStateChanged((user) => {
+    onAuthStateChanged(async (user) => {
         if (user) {
             state.uid = user.uid;
             // Si el nombre viene de Google, actualizar la UI
@@ -86,6 +89,42 @@ async function init() {
             if (user.photoURL) {
                 document.getElementById('user-profile-pic').src = user.photoURL;
             }
+
+            // Intentar reconectar si hay sesión activa
+            const activeSessionRaw = localStorage.getItem('fac_active_session');
+            if (activeSessionRaw) {
+                try {
+                    const activeSession = JSON.parse(activeSessionRaw);
+                    const sessionData = await verifyActiveSession(activeSession.code);
+                    
+                    if (sessionData && 
+                       ((activeSession.role === 'host' && sessionData.hostId === state.uid) || 
+                        (activeSession.role === 'guest' && sessionData.guestId === state.uid))) {
+                        
+                        state.sessionCode = activeSession.code;
+                        state.role = activeSession.role;
+                        
+                        if (sessionData.status === 'waiting') {
+                            showView(activeSession.role === 'host' ? views.lobbyHost : views.lobbyGuest);
+                            if (activeSession.role === 'host') {
+                                document.getElementById('host-room-code').innerText = activeSession.code;
+                            }
+                        } else {
+                            // Mostrar temporalmente loading hasta que onSessionUpdate pinte la vista correcta
+                            showView(views.loading); 
+                        }
+                        
+                        listenToSession(activeSession.code, onSessionUpdate);
+                        return; // Evita mostrar la vista de "home"
+                    } else {
+                        // Limpiar si ya no es válida
+                        localStorage.removeItem('fac_active_session');
+                    }
+                } catch(e) {
+                    console.error("Error reconectando:", e);
+                }
+            }
+
             showView(views.home);
         } else {
             showView(views.login);
@@ -141,6 +180,18 @@ async function init() {
         }
     });
 
+    btnExitGame?.addEventListener('click', () => {
+        localStorage.removeItem('fac_active_session');
+        showView(views.home);
+    });
+
+    btnExitQuiz?.addEventListener('click', () => {
+        if (confirm('¿Estás seguro de abandonar la partida?')) {
+            localStorage.removeItem('fac_active_session');
+            showView(views.home);
+        }
+    });
+
     window.addEventListener('quizRoundFinished', () => {
         // Si Firebase ya cambió de estado mientras contestábamos, ir directo
         if (state.currentStatus === 'round2_intro') {
@@ -174,6 +225,7 @@ async function handleCreate() {
     const code = await createSession(name);
     if (code) {
         state.sessionCode = code;
+        localStorage.setItem('fac_active_session', JSON.stringify({ code: code, role: 'host' }));
         document.getElementById('host-room-code').innerText = code;
         showView(views.lobbyHost);
         listenToSession(code, onSessionUpdate);
@@ -198,6 +250,7 @@ async function handleJoin() {
     const success = await joinSession(code, name);
     if (success) {
         state.sessionCode = code;
+        localStorage.setItem('fac_active_session', JSON.stringify({ code: code, role: 'guest' }));
         showView(views.lobbyGuest);
         listenToSession(code, onSessionUpdate);
     }
@@ -327,19 +380,37 @@ async function onSessionUpdate(sessionData) {
             const topicKey = topic.replace(/\s+/g, '_').replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ0-9_]/g, '');
             const usedQuestions = sessionData.usedQuestions?.[topicKey] || [];
             
-            const questions = await generateQuestions(topic, category, usedQuestions);
-            
-            // Extraer solo el texto de las preguntas nuevas para guardar en el historial
-            const newQuestionsTexts = questions.map(q => q.question);
-            const updatedUsedQuestions = [...usedQuestions, ...newQuestionsTexts];
+            try {
+                const questions = await generateQuestions(topic, category, usedQuestions);
+                
+                // Extraer solo el texto de las preguntas nuevas para guardar en el historial
+                const newQuestionsTexts = questions.map(q => q.question);
+                const updatedUsedQuestions = [...usedQuestions, ...newQuestionsTexts];
 
-            // Guardar preguntas en caché local por si hay pérdida de conexión
-            localStorage.setItem(`fac_questions_${state.sessionCode}`, JSON.stringify(questions));
-            await updateDoc(doc(db, "sessions", state.sessionCode), { 
-                questions: questions,
-                [`usedQuestions.${topicKey}`]: updatedUsedQuestions,
-                status: 'round1'
-            });
+                // Guardar preguntas en caché local por si hay pérdida de conexión
+                localStorage.setItem(`fac_questions_${state.sessionCode}`, JSON.stringify(questions));
+                await updateDoc(doc(db, "sessions", state.sessionCode), { 
+                    questions: questions,
+                    [`usedQuestions.${topicKey}`]: updatedUsedQuestions,
+                    status: 'round1'
+                });
+            } catch (err) {
+                console.error("Fallo al generar preguntas:", err);
+                await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'generation_error' });
+            }
+        }
+    }
+
+    // Error en generación de la IA
+    if (sessionData.status === 'generation_error' && isNewStatus) {
+        lastProcessedStatus = sessionData.status;
+        showView(views.generation_error);
+        if (state.role === 'host') {
+            document.getElementById('btn-retry-generation').classList.remove('hidden');
+            document.getElementById('guest-waiting-retry').classList.add('hidden');
+        } else {
+            document.getElementById('btn-retry-generation').classList.add('hidden');
+            document.getElementById('guest-waiting-retry').classList.remove('hidden');
         }
     }
 
@@ -359,12 +430,17 @@ async function onSessionUpdate(sessionData) {
         localStorage.setItem(`fac_r1_${state.sessionCode}_${state.uid}`, JSON.stringify(sessionData.round1[state.role]));
     }
 
-    // Syncing de Ronda 1: Comprobar si ambos terminaron → ir a pantalla intermedia
+    // Syncing de Ronda 1: Comprobar si ambos terminaron → ir a pantalla intermedia o resultados
     if (sessionData.status === 'round1' && state.role === 'host') {
         const p1Finished = sessionData.round1Finished?.['host'] === true;
         const p2Finished = sessionData.round1Finished?.['guest'] === true;
         if (p1Finished && p2Finished) {
-            await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'round2_intro' });
+            const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(sessionData.category);
+            if (isPersonalCategory) {
+                await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'round2_intro' });
+            } else {
+                await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'results' });
+            }
         }
     }
 
@@ -474,6 +550,18 @@ document.getElementById('btn-share-link')?.addEventListener('click', async () =>
             setTimeout(() => btn.innerText = oldText, 2000);
         });
     }
+});
+
+document.getElementById('btn-retry-generation')?.addEventListener('click', async () => {
+    document.getElementById('btn-retry-generation').innerText = "Reintentando... 🔄";
+    document.getElementById('btn-retry-generation').disabled = true;
+    await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'loading' });
+    
+    // Restaurar texto para cuando reaparezca el error
+    setTimeout(() => {
+        document.getElementById('btn-retry-generation').innerText = "Reintentar Generación 🔄";
+        document.getElementById('btn-retry-generation').disabled = false;
+    }, 2000);
 });
 
 document.addEventListener('DOMContentLoaded', init);

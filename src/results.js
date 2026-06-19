@@ -36,13 +36,21 @@ export async function renderResults() {
         const truthArr = isTruthArray ? truth : [truth];
         const guessArr = isGuessArray ? guess : [guess];
         
-        // Si adivinas al menos 1 opción elegida por tu pareja, es un acierto
+        // Si adivinas al menos 1 opción elegida por tu pareja (o respuesta correcta), es un acierto
         return guessArr.some(g => truthArr.includes(g));
     }
 
+    const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(data.category);
+
     for (let i = 0; i < 10; i++) {
-        if (checkHit(hostGuesses[i], guestTruth[i])) hostScore++;
-        if (checkHit(guestGuesses[i], hostTruth[i])) guestScore++;
+        if (isPersonalCategory) {
+            if (checkHit(hostGuesses[i], guestTruth[i])) hostScore++;
+            if (checkHit(guestGuesses[i], hostTruth[i])) guestScore++;
+        } else {
+            const correctAnswer = data.questions[i]?.correctAnswerIndex;
+            if (checkHit(hostTruth[i], correctAnswer)) hostScore++;
+            if (checkHit(guestTruth[i], correctAnswer)) guestScore++;
+        }
     }
 
     const totalScore = hostScore + guestScore;
@@ -54,18 +62,25 @@ export async function renderResults() {
 
     let verdict = "";
     let advice = "";
-    if (matchPercent >= 80) {
-        verdict = "¡Almas Gemelas! 🔥";
-        advice = "¡Son increíbles juntos! Sigan cultivando esa conexión única. 💖";
-    } else if (matchPercent >= 60) {
-        verdict = "Se conocen muy bien 💖";
-        advice = "Tienen una conexión sólida. ¡Sigan explorando juntos! ✨";
-    } else if (matchPercent >= 40) {
-        verdict = "Van por muy buen camino 😊";
-        advice = "Cada conversación los acerca más. ¡Sigan hablando! 💬";
+    if (!isPersonalCategory) {
+        if (matchPercent >= 80) verdict = "¡Mentes Brillantes! 🧠✨";
+        else if (matchPercent >= 50) verdict = "Conocimiento Sólido 📚";
+        else verdict = "¡A seguir aprendiendo! 🌍";
+        advice = "Una competencia reñida probando sus conocimientos.";
     } else {
-        verdict = "¡Hay que hablar más! 😅";
-        advice = "Conversaciones profundas crean conexiones más fuertes. ❤️";
+        if (matchPercent >= 80) {
+            verdict = "¡Almas Gemelas! 🔥";
+            advice = "¡Son increíbles juntos! Sigan cultivando esa conexión única. 💖";
+        } else if (matchPercent >= 60) {
+            verdict = "Se conocen muy bien 💖";
+            advice = "Tienen una conexión sólida. ¡Sigan explorando juntos! ✨";
+        } else if (matchPercent >= 40) {
+            verdict = "Van por muy buen camino 😊";
+            advice = "Cada conversación los acerca más. ¡Sigan hablando! 💬";
+        } else {
+            verdict = "¡Hay que hablar más! 😅";
+            advice = "Conversaciones profundas crean conexiones más fuertes. ❤️";
+        }
     }
     document.getElementById('results-verdict').innerText = verdict;
     const adviceEl = document.getElementById('results-advice');
@@ -83,9 +98,13 @@ export async function renderResults() {
 
     const winnerText = document.getElementById('results-winner-text');
     if (hostScore > guestScore) {
-        winnerText.innerHTML = `¡<span style="color:#FF6B9D;">${data.playerNames.host}</span> conoce mejor a su pareja!`;
+        winnerText.innerHTML = isPersonalCategory 
+            ? `¡<span style="color:#FF6B9D;">${data.playerNames.host}</span> conoce mejor a su pareja!`
+            : `¡<span style="color:#FF6B9D;">${data.playerNames.host}</span> domina esta trivia!`;
     } else if (guestScore > hostScore) {
-        winnerText.innerHTML = `¡<span style="color:#C77DFF;">${data.playerNames.guest}</span> conoce mejor a su pareja!`;
+        winnerText.innerHTML = isPersonalCategory
+            ? `¡<span style="color:#C77DFF;">${data.playerNames.guest}</span> conoce mejor a su pareja!`
+            : `¡<span style="color:#C77DFF;">${data.playerNames.guest}</span> domina esta trivia!`;
     } else {
         winnerText.innerText = "🤝 ¡Empate perfecto!";
     }
@@ -249,66 +268,111 @@ function renderBreakdown(data, hostTruth, guestTruth, hostGuesses, guestGuesses)
                 </div>`;
     };
 
+    const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(data.category);
+
     questions.forEach((q, i) => {
         const opts = q.options;
-
-        const guestAnswer = guestTruth[i];
-        const hostGuess   = hostGuesses[i];
-        const hostHit     = checkHitBreakdown(hostGuess, guestAnswer);
-
-        const hostAnswer  = hostTruth[i];
-        const guestGuess  = guestGuesses[i];
-        const guestHit    = checkHitBreakdown(guestGuess, hostAnswer);
-
-        const hasDisagreement = !hostHit || !guestHit;
-
         const card = document.createElement('div');
         card.style.cssText = `background:rgba(20,20,38,0.97); border:1px solid rgba(255,255,255,0.08); border-radius:22px; padding:18px 16px; margin-bottom:14px;`;
 
-        card.innerHTML = `
-            <p style="font-size:10px; font-weight:800; letter-spacing:0.14em; color:rgba(255,255,255,0.38); text-transform:uppercase; margin:0 0 6px 0;">PREGUNTA ${i + 1}</p>
-            <p style="font-size:15px; font-weight:700; color:white; line-height:1.45; margin:0 0 18px 0;">${q.question}</p>
+        if (isPersonalCategory) {
+            const guestAnswer = guestTruth[i];
+            const hostGuess   = hostGuesses[i];
+            const hostHit     = checkHitBreakdown(hostGuess, guestAnswer);
 
-            <!-- Host adivina a Guest -->
-            <div style="margin-bottom:16px;">
+            const hostAnswer  = hostTruth[i];
+            const guestGuess  = guestGuesses[i];
+            const guestHit    = checkHitBreakdown(guestGuess, hostAnswer);
+
+            const hasDisagreement = !hostHit || !guestHit;
+
+            card.innerHTML = `
+                <p style="font-size:10px; font-weight:800; letter-spacing:0.14em; color:rgba(255,255,255,0.38); text-transform:uppercase; margin:0 0 6px 0;">PREGUNTA ${i + 1}</p>
+                <p style="font-size:15px; font-weight:700; color:white; line-height:1.45; margin:0 0 18px 0;">${q.question}</p>
+
+                <!-- Host adivina a Guest -->
+                <div style="margin-bottom:16px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                        <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
+                        <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,255,255,0.35); white-space:nowrap; text-transform:uppercase;">Adivinando a ${guestName}</span>
+                        <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        ${avatarEl(hostName, true, 'Adivinó:')}
+                        ${guessBubble(formatAnswerText(hostGuess, opts), hostHit)}
+                        ${avatarEl(guestName, false, 'Dijo:')}
+                        ${truthBubble(formatAnswerText(guestAnswer, opts))}
+                    </div>
+                </div>
+
+                <!-- Guest adivina a Host -->
+                <div style="margin-bottom:${hasDisagreement ? '20px' : '0'};">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                        <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
+                        <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,255,255,0.35); white-space:nowrap; text-transform:uppercase;">Adivinando a ${hostName}</span>
+                        <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        ${avatarEl(guestName, false, 'Adivinó:')}
+                        ${guessBubble(formatAnswerText(guestGuess, opts), guestHit)}
+                        ${avatarEl(hostName, true, 'Dijo:')}
+                        ${truthBubble(formatAnswerText(hostAnswer, opts))}
+                    </div>
+                </div>
+
+                ${hasDisagreement ? `
+                <button class="btn-debate-trigger" data-q-idx="${i}"
+                    style="width:100%; padding:14px 20px; border-radius:16px; font-weight:800; font-size:14px;
+                           background:linear-gradient(135deg, rgba(255,107,157,0.14), rgba(199,125,255,0.14));
+                           border:1.5px solid rgba(255,107,157,0.4); color:#FF6B9D;
+                           display:flex; align-items:center; justify-content:center; gap:8px;
+                           cursor:pointer; letter-spacing:0.02em; box-sizing:border-box;">
+                    🔥 ¡Botón del Desacuerdo! <span class="debate-remaining-badge" style="font-size:12px; opacity:0.6; font-weight:600;"></span>
+                </button>` : ''}
+            `;
+        } else {
+            // Modo Trivia
+            const correctAnswer = q.correctAnswerIndex;
+            const hostAnswer = hostTruth[i];
+            const guestAnswer = guestTruth[i];
+            
+            const hostHit = checkHitBreakdown(hostAnswer, correctAnswer);
+            const guestHit = checkHitBreakdown(guestAnswer, correctAnswer);
+            
+            card.innerHTML = `
+                <p style="font-size:10px; font-weight:800; letter-spacing:0.14em; color:rgba(255,255,255,0.38); text-transform:uppercase; margin:0 0 6px 0;">PREGUNTA ${i + 1}</p>
+                <p style="font-size:15px; font-weight:700; color:white; line-height:1.45; margin:0 0 18px 0;">${q.question}</p>
+
+                <div style="margin-bottom:16px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                        <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
+                        <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,255,255,0.35); white-space:nowrap; text-transform:uppercase;">Respuesta de IA</span>
+                        <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:center; margin-bottom:16px;">
+                        ${truthBubble(formatAnswerText(correctAnswer, opts))}
+                    </div>
+                </div>
+
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                     <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
-                    <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,255,255,0.35); white-space:nowrap; text-transform:uppercase;">Adivinando a ${guestName}</span>
+                    <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,255,255,0.35); white-space:nowrap; text-transform:uppercase;">Sus Respuestas</span>
                     <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
                 </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    ${avatarEl(hostName, true, 'Adivinó:')}
-                    ${guessBubble(formatAnswerText(hostGuess, opts), hostHit)}
-                    ${avatarEl(guestName, false, 'Dijo:')}
-                    ${truthBubble(formatAnswerText(guestAnswer, opts))}
+                
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        ${avatarEl(hostName, true, 'Jugó:')}
+                        ${guessBubble(formatAnswerText(hostAnswer, opts), hostHit)}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        ${avatarEl(guestName, false, 'Jugó:')}
+                        ${guessBubble(formatAnswerText(guestAnswer, opts), guestHit)}
+                    </div>
                 </div>
-            </div>
+            `;
+        }
 
-            <!-- Guest adivina a Host -->
-            <div style="margin-bottom:${hasDisagreement ? '20px' : '0'};">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                    <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
-                    <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,255,255,0.35); white-space:nowrap; text-transform:uppercase;">Adivinando a ${hostName}</span>
-                    <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
-                </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    ${avatarEl(guestName, false, 'Adivinó:')}
-                    ${guessBubble(formatAnswerText(guestGuess, opts), guestHit)}
-                    ${avatarEl(hostName, true, 'Dijo:')}
-                    ${truthBubble(formatAnswerText(hostAnswer, opts))}
-                </div>
-            </div>
-
-            ${hasDisagreement ? `
-            <button class="btn-debate-trigger" data-q-idx="${i}"
-                style="width:100%; padding:14px 20px; border-radius:16px; font-weight:800; font-size:14px;
-                       background:linear-gradient(135deg, rgba(255,107,157,0.14), rgba(199,125,255,0.14));
-                       border:1.5px solid rgba(255,107,157,0.4); color:#FF6B9D;
-                       display:flex; align-items:center; justify-content:center; gap:8px;
-                       cursor:pointer; letter-spacing:0.02em; box-sizing:border-box;">
-                🔥 ¡Botón del Desacuerdo! <span class="debate-remaining-badge" style="font-size:12px; opacity:0.6; font-weight:600;"></span>
-            </button>` : ''}
-        `;
         container.appendChild(card);
     });
 
