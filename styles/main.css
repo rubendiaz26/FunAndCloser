@@ -20,6 +20,9 @@ body {
 
 .view.active {
   display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 @keyframes fadeIn {

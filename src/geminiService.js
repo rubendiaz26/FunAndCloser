@@ -38,7 +38,7 @@ export async function generateQuestions(topic, category, usedQuestions = []) {
     const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(category);
 
     const contextLine = isPersonalCategory
-        ? `Las preguntas deben considerar que la pareja pasa la semana separados por trabajo, pero se ven los fines de semana (con un máximo de 2 semanas sin verse). Deben ser íntimas, personales y relevantes para su dinámica como pareja.`
+        ? `Las preguntas deben considerar que la pareja pasa la semana separados por trabajo, pero se ven los fines de semana. Tienen mucha cercanía emocional. Deben ser íntimas, personales y relevantes para su dinámica como pareja. EVITA obsesionarte con la "distancia" o "extrañarse".`
         : `Las preguntas son de cultura y conocimiento general sobre el tema "${topic}". Déjalas entretenidas y accesibles para cualquier persona.`;
 
     const jsonFormat = isPersonalCategory 
@@ -49,26 +49,32 @@ export async function generateQuestions(topic, category, usedQuestions = []) {
 
 ${contextLine}
 
-REGLAS DE FORMATO (MUY IMPORTANTES):
-- Las preguntas deben ser CORTAS y DIRECTAS: máximo 15 palabras.
-- NO uses paréntesis en ninguna pregunta ni opción.
-- NO uses frases entre guiones que hagan la pregunta más larga.
-- Escribe en primera persona cuando aplique ("Cuando extraño a mi pareja...").
-- Las opciones deben ser breves: máximo 10 palabras por opción.
+${isPersonalCategory ? `REGLAS DE CALIDAD Y ESTILO (CRÍTICAS):
+- Las preguntas deben sonar como algo que una persona le preguntaría a su pareja en una conversación real y casual.
+- LÍMITE ESTRICTO: máximo 12 palabras por pregunta. Si supera ese número, reescríbela más corta.
+- PROHIBIDO: jerga inventada, palabras entre comillas simples ('control', 'dinámica'), frases nominalizadas largas.
+- PROHIBIDO: usar guiones largos, paréntesis o estructuras del tipo "el hecho de que..." o "en el contexto de...".
+- USA verbos de acción directos: decidir, elegir, proponer, iniciar, decir, sentir, hacer.
+- Las opciones deben ser frases cortas y naturales (máx. 8 palabras), no descripciones literarias.
 - El 30-40% deben ser multiSelect: true, solo cuando tiene sentido elegir varias.
 
-EJEMPLOS de preguntas CORRECTAS (cortas y sin paréntesis):
-- "¿Qué hago cuando extraño a mi pareja sin decirlo?"
-- "Si nos reencontáramos hoy, lo primero que haría es..."
-- "¿Cuál es la capital de Brasil?"
-- "¿Qué país tiene más idiomas oficiales?"
+✅ EJEMPLOS CORRECTOS (cortos, naturales, directos):
+- "¿en qué decisión prefieres que yo tome la iniciativa?"
+- "¿Qué parte de mi rutina te gustaría conocer mejor?"
+- "Si pudiera cambiar algo de mis hábitos, ¿qué elegirías?"
+- "¿En qué soy mejor: planear salidas o improvisar?"
+- "¿Cómo me demuestras que me extrañas sin decirlo?"` : `REGLAS DE CALIDAD Y ESTILO:
+- Las preguntas deben ser de cultura o conocimiento general. NADA de contexto de pareja o relación.
+- Cada pregunta tiene UNA sola respuesta correcta (correctAnswerIndex obligatorio).
+- Las opciones deben ser plausibles pero solo una correcta.
+- LÍMITE ESTRICTO: máximo 12 palabras por pregunta.
+- NO uses paréntesis en ninguna pregunta ni opción.
+- Las opciones deben ser breves: máximo 8 palabras por opción.
+- multiSelect SIEMPRE debe ser false para estas categorías.`}
 
-EJEMPLOS de preguntas INCORRECTAS (demasiado largas o con paréntesis):
-- "Cuando pienso en los pequeños viajes que hacemos juntos en nuestra mente (como hablar de nuestros planes futuros), lo que más valoro es..."
-
-Responde ÚNICAMENTE con un array JSON estricto:
+Respóndeme ÚNICAMENTE con el array JSON estricto con este formato:
 ${jsonFormat}
-Solo el JSON. Sin markdown, sin comillas invertidas, sin texto extra.`;
+Sin markdown, sin comillas invertidas, sin texto extra.`;
 
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {

@@ -1,5 +1,5 @@
 import { auth, googleProvider, isConfigured } from './firebase.js';
-import { signInWithPopup, signInAnonymously, onAuthStateChanged as firebaseOnAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { signInWithPopup, signInAnonymously, onAuthStateChanged as firebaseOnAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { state } from './state.js';
 
 export async function loginWithGoogle() {
@@ -64,4 +64,14 @@ export function onAuthStateChanged(callback) {
         return;
     }
     return firebaseOnAuthStateChanged(auth, callback);
+}
+
+export async function logout() {
+    if (isConfigured) {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Error al cerrar sesión:", error);
+        }
+    }
 }

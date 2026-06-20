@@ -1,4 +1,4 @@
-import { loginWithGoogle, loginAnonymously, onAuthStateChanged } from './auth.js';
+import { loginWithGoogle, loginAnonymously, onAuthStateChanged, logout } from './auth.js';
 import { state } from './state.js';
 import { createSession, joinSession, listenToSession, verifyActiveSession } from './session.js';
 import { isConfigured, db } from './firebase.js';
@@ -40,7 +40,7 @@ const btnViewHistory = document.getElementById('btn-view-history');
 const btnBackHome = document.getElementById('btn-back-home');
 const btnExitGame = document.getElementById('btn-exit-game');
 const btnExitQuiz = document.getElementById('btn-exit-quiz');
-
+const btnLogout = document.getElementById('btn-logout');
 let lastProcessedStatus = null;
 
 function showView(viewElement) {
@@ -75,6 +75,10 @@ async function init() {
     onAuthStateChanged(async (user) => {
         if (user) {
             state.uid = user.uid;
+            
+            const savedGender = localStorage.getItem('playerGender');
+            if (savedGender) state.playerGender = savedGender;
+
             // Si el nombre viene de Google, actualizar la UI
             if (user.displayName) {
                 const firstName = user.displayName.split(' ')[0];
@@ -135,6 +139,11 @@ async function init() {
         btnLoginGoogle.disabled = true;
         btnLoginGoogle.innerHTML = "Conectando...";
         try {
+            const genderEl = document.querySelector('input[name="login-gender"]:checked');
+            if(genderEl) {
+                state.playerGender = genderEl.value;
+                localStorage.setItem('playerGender', genderEl.value);
+            }
             await loginWithGoogle();
         } catch (e) {
             alert("Error al iniciar sesión");
@@ -148,6 +157,11 @@ async function init() {
         btnLoginGuest.disabled = true;
         btnLoginGuest.innerHTML = "Entrando...";
         try {
+            const genderEl = document.querySelector('input[name="login-gender"]:checked');
+            if(genderEl) {
+                state.playerGender = genderEl.value;
+                localStorage.setItem('playerGender', genderEl.value);
+            }
             await loginAnonymously(name);
         } catch (e) {
             alert("Error al entrar como invitado");
@@ -186,9 +200,18 @@ async function init() {
     });
 
     btnExitQuiz?.addEventListener('click', () => {
-        if (confirm('¿Estás seguro de abandonar la partida?')) {
+        if(confirm("¿Seguro que quieres salir de la ronda actual? Se perderá el progreso no guardado.")) {
             localStorage.removeItem('fac_active_session');
-            showView(views.home);
+            location.reload();
+        }
+    });
+
+    btnLogout?.addEventListener('click', async () => {
+        if(confirm("¿Seguro que quieres cerrar sesión y volver a la pantalla de inicio?")) {
+            await logout();
+            localStorage.removeItem('playerName');
+            localStorage.removeItem('fac_active_session');
+            location.reload();
         }
     });
 
@@ -338,6 +361,8 @@ async function onSessionUpdate(sessionData) {
         
         // Aseguramos que la vista sea la correcta incluso si reconectó tarde
         showView(views.roulette);
+        // Renderizar la ruleta SIEMPRE antes de animar (por si reconectó y el wheel está vacío)
+        renderRoulette();
         document.getElementById('roulette-turn-msg').innerText = "¡Girando...!";
         btnSpin.disabled = true;
         
@@ -358,12 +383,18 @@ async function onSessionUpdate(sessionData) {
         document.getElementById('reveal-category').innerText = sessionData.category || 'Categoría';
         document.getElementById('reveal-topic').innerText = sessionData.topic || 'Tema Sorpresa';
 
-        // Solo quien giró avanza a loading
+        // AMBOS jugadores avanzan a loading después del reveal
+        // El host escribe en Firestore, pero el invitado también ve la transición local
         if (state.role === sessionData.spinnerTurn) {
+            // Quien giró escribe el cambio en Firebase (sincroniza al otro)
             setTimeout(async () => {
                 await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'loading' });
-            }, 3000);
+            }, 2500);
         }
+        // Ambos jugadores ven la pantalla de loading localmente después del delay
+        setTimeout(() => {
+            showView(views.loading);
+        }, 2500);
     }
 
     // Llamada a Gemini (loading)

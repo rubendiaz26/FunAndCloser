@@ -27,6 +27,7 @@ export async function createSession(hostName) {
         guestId: null,
         spinnerTurn: "host",
         playerNames: { host: hostName, guest: null },
+        playerGenders: { host: state.playerGender || "male", guest: null },
         category: null,
         topic: null,
         rouletteAngle: 0,
@@ -65,7 +66,8 @@ export async function joinSession(code, guestName) {
 
     await updateDoc(sessionRef, {
         guestId: state.uid,
-        "playerNames.guest": guestName
+        "playerNames.guest": guestName,
+        "playerGenders.guest": state.playerGender || "female"
     });
 
     return true;

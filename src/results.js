@@ -96,6 +96,12 @@ export async function renderResults() {
     document.getElementById('results-p2-name').innerText = data.playerNames.guest;
     document.getElementById('results-p2-score').innerText = `${guestScore}/10`;
 
+    const hostGender = data.playerGenders?.host || "male";
+    const guestGender = data.playerGenders?.guest || "female";
+    
+    document.getElementById('results-p1-avatar').src = hostGender === "female" ? "avatar_p1.png" : "avatar_p2.png";
+    document.getElementById('results-p2-avatar').src = guestGender === "female" ? "avatar_p1.png" : "avatar_p2.png";
+
     const winnerText = document.getElementById('results-winner-text');
     if (hostScore > guestScore) {
         winnerText.innerHTML = isPersonalCategory 
@@ -222,49 +228,63 @@ function renderBreakdown(data, hostTruth, guestTruth, hostGuesses, guestGuesses)
         const isCorrect = isHit === true;
         const isEmpty = isHit === null;
 
-        let bg = 'rgba(255,255,255,0.04)';
-        let icon = '';
+        let bg, borderColor, resultBadge;
         if (isCorrect) {
-            bg = 'linear-gradient(135deg, #05a87a, #06D6A0)';
-            icon = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;margin-top:1px;"><polyline points="20 6 9 17 4 12"/></svg>`;
+            bg = 'linear-gradient(135deg, rgba(5,168,122,0.25), rgba(6,214,160,0.15))';
+            borderColor = 'rgba(6,214,160,0.45)';
+            resultBadge = `<div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                <span style="font-size:20px; line-height:1;">✅</span>
+                <span style="font-size:10px; font-weight:800; color:#06D6A0; letter-spacing:0.08em; text-transform:uppercase;">¡Acertó!</span>
+            </div>`;
         } else if (isMissed) {
-            bg = 'linear-gradient(135deg, #c0392b, #e74c3c)';
-            icon = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;margin-top:1px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+            bg = 'linear-gradient(135deg, rgba(192,57,43,0.25), rgba(231,76,60,0.15))';
+            borderColor = 'rgba(231,76,60,0.45)';
+            resultBadge = `<div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                <span style="font-size:20px; line-height:1;">❌</span>
+                <span style="font-size:10px; font-weight:800; color:#e74c3c; letter-spacing:0.08em; text-transform:uppercase;">Falló</span>
+            </div>`;
         } else {
-            icon = `<span style="font-size:12px; opacity:0.3; font-weight:bold;">?</span>`;
+            bg = 'rgba(255,255,255,0.04)';
+            borderColor = 'rgba(255,255,255,0.08)';
+            resultBadge = `<div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                <span style="font-size:20px; line-height:1; opacity:0.3;">❓</span>
+                <span style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.3); letter-spacing:0.08em; text-transform:uppercase;">Sin respuesta</span>
+            </div>`;
         }
 
-        const textColor = isEmpty ? 'rgba(255,255,255,0.3)' : 'white';
-        const displayText = isEmpty || text === '—' ? 'Sin respuesta' : text;
+        const textColor = isEmpty ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.92)';
+        const displayText = isEmpty || text === '—' ? '—' : text;
 
-        return `<div style="background:${bg}; border:1px solid rgba(255,255,255,0.05); border-radius:14px 14px 14px 4px; padding:10px 12px; flex:1; min-width:0; min-height:42px; display:flex; align-items:center;">
-                    <div style="display:flex; align-items:flex-start; gap:7px; width:100%;">
-                        <p style="font-size:12px; font-weight:600; color:${textColor}; line-height:1.4; flex-grow:1; margin:0; word-break:break-word;">${displayText}</p>
-                        ${icon}
-                    </div>
+        return `<div style="background:${bg}; border:1px solid ${borderColor}; border-radius:16px; padding:14px 16px; width:100%; box-sizing:border-box;">
+                    ${resultBadge}
+                    <p style="font-size:14px; font-weight:600; color:${textColor}; line-height:1.55; margin:0; word-break:break-word;">${displayText}</p>
                 </div>`;
     };
 
     const truthBubble = (text) => {
         const isEmpty = text === '—';
-        const displayText = isEmpty ? 'Sin respuesta' : text;
-        const textColor = isEmpty ? 'rgba(255,255,255,0.3)' : '#E4C7FF';
+        const displayText = isEmpty ? '—' : text;
+        const textColor = isEmpty ? 'rgba(255,255,255,0.3)' : '#EDD9FF';
 
-        return `<div style="background:rgba(199,125,255,0.12); border:1px solid rgba(199,125,255,0.25); border-radius:14px 14px 4px 14px; padding:12px 12px; flex:1; min-width:0; position:relative; min-height:42px; display:flex; align-items:center; margin-top:8px;">
-                    <span style="position:absolute; top:-9px; right:8px; background:linear-gradient(90deg,#C77DFF,#9B5DE5); color:white; font-size:8px; font-weight:800; letter-spacing:0.08em; padding:2px 7px; border-radius:99px; box-shadow:0 2px 4px rgba(0,0,0,0.3);">VERDAD</span>
-                    <p style="font-size:12px; font-weight:600; color:${textColor}; line-height:1.4; margin:0; word-break:break-word; width:100%;">${displayText}</p>
+        return `<div style="background:linear-gradient(135deg, rgba(199,125,255,0.18), rgba(155,93,229,0.1)); border:1px solid rgba(199,125,255,0.35); border-radius:16px; padding:14px 16px; width:100%; box-sizing:border-box; position:relative;">
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                        <span style="font-size:20px; line-height:1;">💬</span>
+                        <span style="font-size:10px; font-weight:800; background:linear-gradient(90deg,#C77DFF,#9B5DE5); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:0.1em; text-transform:uppercase;">Lo que dijo</span>
+                        <span style="margin-left:auto; background:linear-gradient(90deg,#C77DFF,#9B5DE5); color:white; font-size:8px; font-weight:800; letter-spacing:0.08em; padding:2px 8px; border-radius:99px;">VERDAD</span>
+                    </div>
+                    <p style="font-size:14px; font-weight:600; color:${textColor}; line-height:1.55; margin:0; word-break:break-word;">${displayText}</p>
                 </div>`;
     };
 
-    const avatarEl = (name, isHost, label) => {
+    const playerHeader = (name, isHost, label) => {
         const color = isHost ? '#FF6B9D' : '#C77DFF';
         const initial = name ? name[0].toUpperCase() : '?';
-        return `<div style="display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0; width:46px;">
-                    <div style="width:38px; height:38px; border-radius:12px; background:rgba(255,255,255,0.05); border:2px solid ${color}; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; color:${color}; margin-bottom:2px;">
-                        ${initial}
+        return `<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                    <div style="width:32px; height:32px; border-radius:10px; background:rgba(255,255,255,0.05); border:2px solid ${color}; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:${color}; flex-shrink:0;">${initial}</div>
+                    <div style="display:flex; flex-direction:column; gap:1px; min-width:0;">
+                        <span style="font-size:13px; font-weight:800; color:white; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</span>
+                        <span style="font-size:10px; color:rgba(255,255,255,0.4); font-weight:600;">${label}</span>
                     </div>
-                    <span style="font-size:8px; font-weight:800; color:rgba(255,255,255,0.7); text-transform:uppercase; letter-spacing:0.05em; text-align:center; line-height:1.1; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</span>
-                    <span style="font-size:8px; color:rgba(255,255,255,0.3); text-align:center;">${label}</span>
                 </div>`;
     };
 
@@ -287,36 +307,46 @@ function renderBreakdown(data, hostTruth, guestTruth, hostGuesses, guestGuesses)
             const hasDisagreement = !hostHit || !guestHit;
 
             card.innerHTML = `
-                <p style="font-size:10px; font-weight:800; letter-spacing:0.14em; color:rgba(255,255,255,0.38); text-transform:uppercase; margin:0 0 6px 0;">PREGUNTA ${i + 1}</p>
-                <p style="font-size:15px; font-weight:700; color:white; line-height:1.45; margin:0 0 18px 0;">${q.question}</p>
+                <p style="font-size:10px; font-weight:800; letter-spacing:0.14em; color:rgba(255,255,255,0.35); text-transform:uppercase; margin:0 0 8px 0;">PREGUNTA ${i + 1}</p>
+                <p style="font-size:16px; font-weight:700; color:white; line-height:1.5; margin:0 0 20px 0;">${q.question}</p>
 
                 <!-- Host adivina a Guest -->
-                <div style="margin-bottom:16px;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <div style="margin-bottom:6px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                         <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
-                        <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,255,255,0.35); white-space:nowrap; text-transform:uppercase;">Adivinando a ${guestName}</span>
+                        <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,107,157,0.7); white-space:nowrap; text-transform:uppercase;">Adivinando a ${guestName}</span>
                         <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        ${avatarEl(hostName, true, 'Adivinó:')}
-                        ${guessBubble(formatAnswerText(hostGuess, opts), hostHit)}
-                        ${avatarEl(guestName, false, 'Dijo:')}
-                        ${truthBubble(formatAnswerText(guestAnswer, opts))}
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div>
+                            ${playerHeader(hostName, true, 'Adivinó:')}
+                            ${guessBubble(formatAnswerText(hostGuess, opts), hostHit)}
+                        </div>
+                        <div>
+                            ${playerHeader(guestName, false, 'Dijo:')}
+                            ${truthBubble(formatAnswerText(guestAnswer, opts))}
+                        </div>
                     </div>
                 </div>
 
+                <div style="height:1px; background:rgba(255,255,255,0.06); margin:18px 0;"></div>
+
                 <!-- Guest adivina a Host -->
-                <div style="margin-bottom:${hasDisagreement ? '20px' : '0'};">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <div style="margin-bottom:${hasDisagreement ? '20px' : '4px'};">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                         <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
-                        <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,255,255,0.35); white-space:nowrap; text-transform:uppercase;">Adivinando a ${hostName}</span>
+                        <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(199,125,255,0.7); white-space:nowrap; text-transform:uppercase;">Adivinando a ${hostName}</span>
                         <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        ${avatarEl(guestName, false, 'Adivinó:')}
-                        ${guessBubble(formatAnswerText(guestGuess, opts), guestHit)}
-                        ${avatarEl(hostName, true, 'Dijo:')}
-                        ${truthBubble(formatAnswerText(hostAnswer, opts))}
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div>
+                            ${playerHeader(guestName, false, 'Adivinó:')}
+                            ${guessBubble(formatAnswerText(guestGuess, opts), guestHit)}
+                        </div>
+                        <div>
+                            ${playerHeader(hostName, true, 'Dijo:')}
+                            ${truthBubble(formatAnswerText(hostAnswer, opts))}
+                        </div>
                     </div>
                 </div>
 
@@ -340,33 +370,31 @@ function renderBreakdown(data, hostTruth, guestTruth, hostGuesses, guestGuesses)
             const guestHit = checkHitBreakdown(guestAnswer, correctAnswer);
             
             card.innerHTML = `
-                <p style="font-size:10px; font-weight:800; letter-spacing:0.14em; color:rgba(255,255,255,0.38); text-transform:uppercase; margin:0 0 6px 0;">PREGUNTA ${i + 1}</p>
-                <p style="font-size:15px; font-weight:700; color:white; line-height:1.45; margin:0 0 18px 0;">${q.question}</p>
+                <p style="font-size:10px; font-weight:800; letter-spacing:0.14em; color:rgba(255,255,255,0.35); text-transform:uppercase; margin:0 0 8px 0;">PREGUNTA ${i + 1}</p>
+                <p style="font-size:16px; font-weight:700; color:white; line-height:1.5; margin:0 0 20px 0;">${q.question}</p>
 
-                <div style="margin-bottom:16px;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <div style="margin-bottom:18px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                         <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
-                        <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,255,255,0.35); white-space:nowrap; text-transform:uppercase;">Respuesta de IA</span>
+                        <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(199,125,255,0.7); white-space:nowrap; text-transform:uppercase;">Respuesta Correcta</span>
                         <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
                     </div>
-                    <div style="display:flex; align-items:center; justify-content:center; margin-bottom:16px;">
-                        ${truthBubble(formatAnswerText(correctAnswer, opts))}
-                    </div>
+                    ${truthBubble(formatAnswerText(correctAnswer, opts))}
                 </div>
 
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                     <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
                     <span style="font-size:9px; font-weight:800; letter-spacing:0.12em; color:rgba(255,255,255,0.35); white-space:nowrap; text-transform:uppercase;">Sus Respuestas</span>
                     <div style="flex:1; height:1px; background:rgba(255,255,255,0.07);"></div>
                 </div>
-                
-                <div style="display:flex; flex-direction:column; gap:8px;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        ${avatarEl(hostName, true, 'Jugó:')}
+
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div>
+                        ${playerHeader(hostName, true, 'Jugó:')}
                         ${guessBubble(formatAnswerText(hostAnswer, opts), hostHit)}
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        ${avatarEl(guestName, false, 'Jugó:')}
+                    <div>
+                        ${playerHeader(guestName, false, 'Jugó:')}
                         ${guessBubble(formatAnswerText(guestAnswer, opts), guestHit)}
                     </div>
                 </div>

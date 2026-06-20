@@ -109,6 +109,21 @@
           <div class="w-10 h-1 rounded-full" style="background: rgba(199,125,255,0.35);"></div>
         </div>
 
+        <!-- Selección de Género -->
+        <div class="mb-5 text-center bg-white/5 rounded-2xl py-3 px-4 border border-white/10">
+          <p class="text-xs text-gray-400 mb-3 font-semibold uppercase tracking-wider">Tu Avatar</p>
+          <div class="flex justify-center gap-8">
+            <label class="flex items-center gap-2 cursor-pointer group">
+              <input type="radio" name="login-gender" value="male" class="w-4 h-4 accent-secondary" checked>
+              <span class="text-sm text-white font-medium group-hover:text-secondary transition">Chico 👨</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer group">
+              <input type="radio" name="login-gender" value="female" class="w-4 h-4 accent-primary">
+              <span class="text-sm text-white font-medium group-hover:text-primary transition">Chica 👩</span>
+            </label>
+          </div>
+        </div>
+
         <!-- Botón Google -->
         <button id="btn-login-google"
                 class="w-full bg-white text-gray-800 font-bold rounded-2xl flex items-center justify-center gap-3 transition active:scale-95 hover:bg-gray-50 mb-5"
@@ -211,9 +226,9 @@
           <span class="text-primary text-xl">✨</span>
           <h1 class="font-playfair text-xl font-bold text-primary tracking-tight">Fun<span class="text-white">&amp;</span>Closer<span class="text-xs ml-0.5 text-primary">❤</span></h1>
         </div>
-        <button class="flex items-center gap-2 bg-transparent border border-gray-600 rounded-full px-3 py-1.5 hover:bg-white/5 transition">
-          <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
-          <span id="user-profile-name" class="text-xs font-bold text-gray-200">Invitado</span>
+        <button id="btn-logout" title="Cerrar sesión" class="flex items-center gap-2 bg-transparent border border-gray-600 rounded-full px-3 py-1.5 hover:bg-red-500/10 transition hover:border-red-500 group">
+          <svg class="w-4 h-4 text-gray-400 group-hover:text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+          <span id="user-profile-name" class="text-xs font-bold text-gray-200 group-hover:text-red-400">Invitado</span>
         </button>
       </div>
 
@@ -373,24 +388,28 @@
     </section>
 
     <!-- PANTALLA CARGA (GEMINI) -->
-    <section id="view-loading" class="view hidden flex flex-col h-full justify-center items-center text-center">
-      <div class="relative w-24 h-24 mb-6">
-        <div class="absolute inset-0 border-4 border-t-primary border-r-secondary border-b-tertiary border-l-success rounded-full animate-spin"></div>
-        <div class="absolute inset-2 bg-surface rounded-full flex items-center justify-center text-2xl" id="loading-emoji">✨</div>
+    <section id="view-loading" class="view hidden" style="min-height: 100dvh; min-height: 100vh; align-items: center; justify-content: center; text-align: center;">
+      <div class="flex flex-col items-center justify-center text-center px-6">
+        <div class="relative w-24 h-24 mb-6">
+          <div class="absolute inset-0 border-4 border-t-primary border-r-secondary border-b-tertiary border-l-success rounded-full animate-spin"></div>
+          <div class="absolute inset-2 bg-surface rounded-full flex items-center justify-center text-2xl" id="loading-emoji">✨</div>
+        </div>
+        <h2 class="font-playfair text-2xl mb-2">Generando magia...</h2>
+        <p class="text-gray-400 max-w-xs">Gemini está preparando 10 preguntas únicas para ustedes.</p>
       </div>
-      <h2 class="font-playfair text-2xl mb-2">Generando magia...</h2>
-      <p class="text-gray-400">Gemini está preparando 10 preguntas únicas para ustedes.</p>
     </section>
 
     <!-- PANTALLA ERROR GENERACIÓN -->
-    <section id="view-generation-error" class="view hidden flex flex-col h-full justify-center items-center text-center">
-      <div class="text-6xl mb-4">🤖💥</div>
-      <h2 class="font-playfair text-2xl mb-2">¡Ups! Hubo un tropiezo</h2>
-      <p class="text-gray-400 mb-8 max-w-xs mx-auto">La IA se quedó pensando demasiado o tuvimos un problema de conexión. ¿Intentamos de nuevo?</p>
-      <button id="btn-retry-generation" class="btn-primary w-full max-w-xs py-4 text-lg mb-4 hidden">
-        Reintentar Generación 🔄
-      </button>
-      <p class="text-sm text-gray-400 max-w-xs hidden" id="guest-waiting-retry">Esperando a que el anfitrión reintente...</p>
+    <section id="view-generation-error" class="view hidden flex flex-col h-full text-center">
+      <div class="m-auto flex flex-col items-center justify-center">
+        <div class="text-6xl mb-4">🤖💥</div>
+        <h2 class="font-playfair text-2xl mb-2">¡Ups! Hubo un tropiezo</h2>
+        <p class="text-gray-400 mb-8 max-w-xs mx-auto">La IA se quedó pensando demasiado o tuvimos un problema de conexión. ¿Intentamos de nuevo?</p>
+        <button id="btn-retry-generation" class="btn-primary w-full max-w-xs py-4 text-lg mb-4 hidden">
+          Reintentar Generación 🔄
+        </button>
+        <p class="text-sm text-gray-400 max-w-xs hidden" id="guest-waiting-retry">Esperando a que el anfitrión reintente...</p>
+      </div>
     </section>
 
     <!-- PANTALLA QUIZ (PREGUNTAS) -->
@@ -490,7 +509,7 @@
         <div class="absolute bottom-[10%] right-[-15%] w-80 h-80 bg-secondary opacity-[0.08] rounded-full blur-3xl"></div>
       </div>
 
-      <div class="relative z-10 w-full max-w-sm mx-auto flex flex-col gap-4">
+      <div class="relative z-10 w-full max-w-sm m-auto flex flex-col gap-4 py-8">
 
         <!-- Título -->
         <div class="text-center mb-2">

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 8090;
+const PORT = 8091;
 
 const keyParts = ["AQ.Ab8RN6JY0", "C5jgMJwVDIV0b", "sIekv6FDJBd", "VgQvBC3jryaLBnAgA"];
 const GEMINI_API_KEY = keyParts.join("");
@@ -50,7 +50,7 @@ const server = http.createServer(async (req, res) => {
                 const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(category);
 
                 const contextLine = isPersonalCategory
-                    ? `Las preguntas deben considerar que la pareja pasa la semana separados por trabajo, pero se ven los fines de semana (con un máximo de 2 semanas sin verse). Deben ser íntimas, personales y relevantes para su dinámica como pareja.`
+                    ? `Las preguntas deben considerar que la pareja pasa la semana separados por trabajo, pero se ven los fines de semana. Tienen mucha cercanía emocional. Deben ser íntimas, personales y relevantes para su dinámica como pareja. EVITA obsesionarte con la "distancia" o "extrañarse".`
                     : `Las preguntas son de cultura y conocimiento general sobre el tema "${topic}". Déjalas entretenidas y accesibles para cualquier persona.`;
 
                 const jsonFormat = isPersonalCategory 
@@ -61,11 +61,13 @@ const server = http.createServer(async (req, res) => {
 
 ${contextLine}
 
-REGLAS DE FORMATO (MUY IMPORTANTES):
+REGLAS DE FORMATO Y TEMÁTICA (MUY IMPORTANTES):
+- EVITA abusar de menciones sobre "videollamadas", "mensajes", "lejanía" o "distancia".
+- INCLUYE preguntas variadas sobre: la forma de ser de la pareja, sus manías, y qué te gusta más de su físico (partes del cuerpo o atributos físicos).
 - Las preguntas deben ser CORTAS y DIRECTAS: máximo 15 palabras.
 - NO uses paréntesis en ninguna pregunta ni opción.
 - NO uses frases entre guiones que hagan la pregunta más larga.
-- Escribe en primera persona cuando aplique ("Cuando extraño a mi pareja...").
+- Escribe en primera persona cuando aplique ("Lo que más me gusta de su físico es...").
 - Las opciones deben ser breves: máximo 10 palabras por opción.
 - El 30-40% deben ser multiSelect: true, solo cuando tiene sentido elegir varias.
 
