@@ -3,7 +3,11 @@
 const keyParts = ["AQ.Ab8RN6JY0", "C5jgMJwVDIV0b", "sIekv6FDJBd", "VgQvBC3jryaLBnAgA"];
 const getGeminiKey = () => keyParts.join("");
 
-export async function generateQuestions(topic, category, usedQuestions = []) {
+export async function generateQuestions(topic, category, usedQuestions = [], spicyLevel = 1) {
+    // Regla de seguridad: "Futuros Hijos" siempre debe ser nivel Normal (1)
+    if (topic === "Futuros Hijos") {
+        spicyLevel = 1;
+    }
     // 1. Intentar llamar al backend de Vercel (/api/generate)
     try {
         const response = await fetch('/api/generate', {
@@ -11,7 +15,7 @@ export async function generateQuestions(topic, category, usedQuestions = []) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ topic, category, usedQuestions })
+            body: JSON.stringify({ topic, category, usedQuestions, spicyLevel })
         });
 
         if (response.ok) {
@@ -35,7 +39,7 @@ export async function generateQuestions(topic, category, usedQuestions = []) {
     if (usedQuestions.length > 0) {
         exclusionText = `\nNO repitas ninguna de estas preguntas que ya se hicieron anteriormente:\n- ${usedQuestions.join('\n- ')}\n`;
     }
-    const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(category);
+    const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos', 'Millonarios por un Día', 'Viajeros en el Tiempo'].includes(category);
 
     const contextLine = isPersonalCategory
         ? `Las preguntas deben considerar que la pareja pasa la semana separados por trabajo, pero se ven los fines de semana. Tienen mucha cercanía emocional. Deben ser íntimas, personales y relevantes para su dinámica como pareja. EVITA obsesionarte con la "distancia" o "extrañarse".`
@@ -50,23 +54,38 @@ export async function generateQuestions(topic, category, usedQuestions = []) {
 ${contextLine}
 
 ${isPersonalCategory ? `REGLAS DE CALIDAD Y ESTILO (CRÍTICAS):
-- Las preguntas deben sonar como algo que una persona le preguntaría a su pareja en una conversación real y casual.
-- LÍMITE ESTRICTO: máximo 12 palabras por pregunta. Si supera ese número, reescríbela más corta.
+- Las preguntas deben estar formuladas para que un jugador responda sobre SU PAREJA, no sobre sí mismo.
+- USA el placeholder exacto {pareja} en el texto de la pregunta para referirte al nombre de la pareja. El sistema lo reemplazará con el nombre real en pantalla.
+- LÍMITE ESTRICTO: máximo 14 palabras por pregunta (incluyendo "{pareja}"). Si supera ese número, reescríbela más corta.
 - PROHIBIDO: jerga inventada, palabras entre comillas simples ('control', 'dinámica'), frases nominalizadas largas.
 - PROHIBIDO: usar guiones largos, paréntesis o estructuras del tipo "el hecho de que..." o "en el contexto de...".
+- INCLUYE preguntas variadas sobre: la forma de ser de la pareja, sus manías, su físico, sus hábitos.
 - USA verbos de acción directos: decidir, elegir, proponer, iniciar, decir, sentir, hacer.
 - Las opciones deben ser frases cortas y naturales (máx. 8 palabras), no descripciones literarias.
 - El 30-40% deben ser multiSelect: true, solo cuando tiene sentido elegir varias.
+- PERSPECTIVA DE LAS OPCIONES (MUY IMPORTANTE): Las opciones deben estar en TERCERA PERSONA poseesiva, referidas a la pareja.
+  USA: "su", "sus". PROHIBIDO usar "mi", "mis", "tu", "tus" en las opciones.
+  ❌ "mi carrera profesional"  →  ✅ "su carrera profesional"
+  ❌ "tus hobbies"             →  ✅ "sus hobbies"
+  ❌ "mi bienestar físico"     →  ✅ "su bienestar físico"
+- 🔥 REGLA DE ORIGINALIDAD (CRÍTICA): Las preguntas deben ser ESTRICTAMENTE y ESPECÍFICAMENTE sobre el tema "${topic}". ¡NO COPIES TEXTUALMENTE los ejemplos de abajo! Úsalos SOLAMENTE para entender la estructura de {pareja}. INVENTA PREGUNTAS NUEVAS 100% ORIGINALES.
 
-✅ EJEMPLOS CORRECTOS (cortos, naturales, directos):
-- "¿en qué decisión prefieres que yo tome la iniciativa?"
-- "¿Qué parte de mi rutina te gustaría conocer mejor?"
-- "Si pudiera cambiar algo de mis hábitos, ¿qué elegirías?"
-- "¿En qué soy mejor: planear salidas o improvisar?"
-- "¿Cómo me demuestras que me extrañas sin decirlo?"` : `REGLAS DE CALIDAD Y ESTILO:
+${spicyLevel === 1
+    ? `💧 NIVEL DE INTENSIDAD: NORMAL. Las preguntas deben explorar el tema "${topic}" de forma íntima y emocional. SIN contenido explícitamente sexual.`
+    : spicyLevel === 2
+    ? `🌶️ NIVEL DE INTENSIDAD: PICANTE. El tema central DEBE seguir siendo "${topic}", pero aplícale un giro sensual, pícaro o sugerente. Combina el concepto del tema con atracción física o insinuaciones, sin ser vulgar.`
+    : `🔥 NIVEL DE INTENSIDAD: MUY ATREVIDO. El tema central DEBE seguir siendo "${topic}", pero aplícale un contexto erótico o claramente sexual. Relaciona el concepto del tema con fantasías, deseos físicos o situaciones íntimas directas.`}
+
+✅ EJEMPLOS DE ESTRUCTURA (NO COPIAR):
+- "¿Qué parte del cuerpo de {pareja} te gusta más acariciar?"
+- "¿En qué decisión dejarías que {pareja} tomara la iniciativa?"
+- "¿Qué hábito de {pareja} te parece más adorable?"
+- "¿Qué parte de la rutina de {pareja} te gustaría compartir más?"
+- "¿En qué crees que {pareja} es mejor que tú?"` : `REGLAS DE CALIDAD Y ESTILO:
 - Las preguntas deben ser de cultura o conocimiento general. NADA de contexto de pareja o relación.
+- NIVEL DE DIFICULTAD: INTERMEDIO. No uses preguntas demasiado fáciles (capitales obvias, países grandes) ni excesivamente especializadas. El objetivo es que alguien con educación media-alta deba pensar un poco.
 - Cada pregunta tiene UNA sola respuesta correcta (correctAnswerIndex obligatorio).
-- Las opciones deben ser plausibles pero solo una correcta.
+- Las opciones deben ser plausibles y similares entre sí para que el reto sea real (ej: no mezcles países de distintos continentes si la respuesta es un país europeo).
 - LÍMITE ESTRICTO: máximo 12 palabras por pregunta.
 - NO uses paréntesis en ninguna pregunta ni opción.
 - Las opciones deben ser breves: máximo 8 palabras por opción.
@@ -77,7 +96,7 @@ ${jsonFormat}
 Sin markdown, sin comillas invertidas, sin texto extra.`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

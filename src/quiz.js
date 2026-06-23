@@ -2,6 +2,25 @@ import { state } from './state.js';
 import { updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { db } from './firebase.js';
 
+/**
+ * Reemplaza el placeholder {pareja} con el nombre correcto según la ronda:
+ * - Ronda 1: se reemplaza con el nombre de la PAREJA (respondemos sobre ella).
+ * - Ronda 2: se reemplaza con el nombre PROPIO (la pareja respondio sobre nosotros, ahora adivinamos).
+ */
+function insertarNombrePareja(text, round) {
+    const myName = state.role === 'host'
+        ? state.sessionData?.playerNames?.host
+        : state.sessionData?.playerNames?.guest;
+    const partnerName = state.role === 'host'
+        ? state.sessionData?.playerNames?.guest
+        : state.sessionData?.playerNames?.host;
+    // Ronda 1: respondemos sobre nuestra pareja → mostramos nombre de la pareja
+    // Ronda 2: adivinamos lo que nuestra pareja dijo de nosotros → mostramos nuestro propio nombre
+    const nameToUse = (round === 2) ? myName : partnerName;
+    if (!nameToUse) return text;
+    return text.replace(/\{pareja\}/gi, nameToUse);
+}
+
 let currentQuestionIndex = 0;
 let currentRound = 1;
 let selectedOptions = new Set();
@@ -48,7 +67,10 @@ export function startQuiz(round) {
     const roundIcon  = document.getElementById('quiz-round-icon');
 
     if (round === 1) {
-        roundTitle.innerText = 'Ronda 1 · Sobre ti';
+        const partnerName = state.role === 'host'
+            ? state.sessionData?.playerNames?.guest
+            : state.sessionData?.playerNames?.host;
+        roundTitle.innerText = partnerName ? `Ronda 1 · Sobre ${partnerName}` : 'Ronda 1 · Sobre tu pareja';
         if (roundIcon) roundIcon.innerText = '💬';
     } else {
         const partnerName = state.role === 'host'
@@ -106,8 +128,8 @@ function renderQuestion() {
     document.getElementById('quiz-counter').innerText = `Pregunta ${currentQuestionIndex + 1} de ${TOTAL_QUESTIONS}`;
     renderHearts(currentQuestionIndex + 1, TOTAL_QUESTIONS);
 
-    // Question text
-    let qTextHtml = q.question;
+    // Question text — replace {pareja} placeholder with correct name per round
+    let qTextHtml = insertarNombrePareja(q.question, currentRound);
     if (q.multiSelect) {
         qTextHtml += '<br><span class="text-sm text-[#FF6B9D] font-normal opacity-90 block mt-2">(Puedes elegir hasta 3 opciones)</span>';
     }
@@ -129,7 +151,7 @@ function renderQuestion() {
         `;
 
         const textSpan = document.createElement('span');
-        textSpan.innerText = opt;
+        textSpan.innerText = insertarNombrePareja(opt, currentRound);
         textSpan.style.flex = '1';
 
         const checkCircle = document.createElement('div');

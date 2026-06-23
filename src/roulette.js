@@ -13,8 +13,12 @@ export const CATEGORIES = [
       topics: ["La Casa de tus Sueños", "Próxima Parada", "Metas Compartidas", "Futuros Hijos"] },
     { name: "Picantes y Atrevidos", emoji: "🌶️", color: "#EF233C",
       topics: ["Modo Clandestino", "Fantasías sobre la Mesa", "Quién Toma el Control", "Noche de Cita 5 Estrellas"] },
+    { name: "Millonarios por un Día", emoji: "💰", color: "#F7B731",
+      topics: ["El Gran Lujo", "Inversiones del Corazón", "Caprichos Sin Límite", "Nuestra Vida de Ricos"] },
+    { name: "Viajeros en el Tiempo", emoji: "⏳", color: "#A8DADC",
+      topics: ["Al Pasado Juntos", "El Futuro que Queremos", "Si Volviéramos a Empezar", "Memorias del Mañana"] },
     { name: "Cultura General", emoji: "🧠", color: "#F4A261",
-      topics: ["Música del Mundo", "Historia y Curiosidades", "Ciencia y Tecnología"] },
+      topics: ["Astronomía y el Sistema Solar", "Historia y Curiosidades", "Ciencia y Tecnología"] },
     { name: "Geografía", emoji: "🌍", color: "#2EC4B6",
       topics: ["Capitales del Mundo", "Países y Fronteras", "Maravillas Naturales", "Culturas y Tradiciones"] }
 ];

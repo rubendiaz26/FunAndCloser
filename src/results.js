@@ -504,6 +504,7 @@ async function resetGame() {
         round2: {},
         questions: [],
         round1Finished: {},
-        round2Finished: {}
+        round2Finished: {},
+        spicyLevel: 1  // Volver a nivel Normal al empezar nueva partida
     });
 }

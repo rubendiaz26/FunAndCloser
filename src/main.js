@@ -41,6 +41,8 @@ const btnBackHome = document.getElementById('btn-back-home');
 const btnExitGame = document.getElementById('btn-exit-game');
 const btnExitQuiz = document.getElementById('btn-exit-quiz');
 const btnLogout = document.getElementById('btn-logout');
+const btnCancelLoading = document.getElementById('btn-cancel-loading');
+const btnCancelWaiting = document.getElementById('btn-cancel-waiting');
 let lastProcessedStatus = null;
 
 function showView(viewElement) {
@@ -206,6 +208,16 @@ async function init() {
         }
     });
 
+    // Botones de escape en pantallas de bloqueo (loading / waiting)
+    function handleCancelAndExit() {
+        if(confirm("¿Seguro que quieres salir del juego?")) {
+            localStorage.removeItem('fac_active_session');
+            location.reload();
+        }
+    }
+    btnCancelLoading?.addEventListener('click', handleCancelAndExit);
+    btnCancelWaiting?.addEventListener('click', handleCancelAndExit);
+
     btnLogout?.addEventListener('click', async () => {
         if(confirm("¿Seguro que quieres cerrar sesión y volver a la pantalla de inicio?")) {
             await logout();
@@ -353,6 +365,14 @@ async function onSessionUpdate(sessionData) {
             turnMsg.innerText = `Turno de ${partnerName}`;
             btnSpin.disabled = true;
         }
+
+        // Inicializar selector de intensidad
+        initSpicySelector(sessionData.spicyLevel || 1);
+    }
+
+    // Sincronizar selector de intensidad cuando el host lo cambia
+    if (sessionData.status === 'roulette_waiting' && typeof sessionData.spicyLevel === 'number') {
+        setSpicyUI(sessionData.spicyLevel);
     }
 
     // Animación de la ruleta
@@ -412,7 +432,14 @@ async function onSessionUpdate(sessionData) {
             const usedQuestions = sessionData.usedQuestions?.[topicKey] || [];
             
             try {
-                const questions = await generateQuestions(topic, category, usedQuestions);
+                // Timeout de 25 segundos: si Gemini no responde, lanzamos error controlado
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Timeout: Gemini tardó demasiado')), 25000)
+                );
+                const questions = await Promise.race([
+                    generateQuestions(topic, category, usedQuestions, sessionData.spicyLevel || 1),
+                    timeoutPromise
+                ]);
                 
                 // Extraer solo el texto de las preguntas nuevas para guardar en el historial
                 const newQuestionsTexts = questions.map(q => q.question);
@@ -448,12 +475,19 @@ async function onSessionUpdate(sessionData) {
     // Inicio de Ronda 1
     if (sessionData.status === 'round1' && isNewStatus) {
         lastProcessedStatus = sessionData.status;
-        // Intentar recuperar preguntas de caché si Firebase falla
-        if (!sessionData.questions && localStorage.getItem(`fac_questions_${state.sessionCode}`)) {
-            sessionData.questions = JSON.parse(localStorage.getItem(`fac_questions_${state.sessionCode}`));
+
+        // Si el jugador ya terminó la ronda (e.g. recargó la página después de responder)
+        // enviarlo a esperar en lugar de mostrarle el quiz desde cero
+        if (sessionData.round1Finished?.[state.role] === true) {
+            showView(views.waitingPartner);
+        } else {
+            // Intentar recuperar preguntas de caché si Firebase falla
+            if (!sessionData.questions && localStorage.getItem(`fac_questions_${state.sessionCode}`)) {
+                sessionData.questions = JSON.parse(localStorage.getItem(`fac_questions_${state.sessionCode}`));
+            }
+            showView(views.quiz);
+            startQuiz(1);
         }
-        showView(views.quiz);
-        startQuiz(1);
     }
 
     // Guardar respuestas de Ronda 1 en caché local
@@ -466,7 +500,7 @@ async function onSessionUpdate(sessionData) {
         const p1Finished = sessionData.round1Finished?.['host'] === true;
         const p2Finished = sessionData.round1Finished?.['guest'] === true;
         if (p1Finished && p2Finished) {
-            const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(sessionData.category);
+            const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos', 'Millonarios por un Día', 'Viajeros en el Tiempo'].includes(sessionData.category);
             if (isPersonalCategory) {
                 await updateDoc(doc(db, "sessions", state.sessionCode), { status: 'round2_intro' });
             } else {
@@ -486,12 +520,23 @@ async function onSessionUpdate(sessionData) {
     // Inicio de Ronda 2
     if (sessionData.status === 'round2' && isNewStatus) {
         lastProcessedStatus = sessionData.status;
-        showView(views.quiz);
-        try {
-            startQuiz(2);
-        } catch (error) {
-            console.error("Error in startQuiz(2):", error);
-            alert("Ocurrió un error al cargar la Ronda 2. Por favor, recarga la página.");
+
+        // Si el jugador ya terminó la ronda 2, enviarlo a espera en lugar de inyectarlo en el quiz
+        if (sessionData.round2Finished?.[state.role] === true) {
+            const waitingView = views.waitingPartner;
+            waitingView.querySelector('h2').innerText = '¡Ronda 2 completada!';
+            waitingView.querySelector('p').innerText = 'Calculando compatibilidad...';
+            const spinnerCard = waitingView.querySelector('.glass-card');
+            if (spinnerCard) spinnerCard.classList.add('hidden');
+            showView(waitingView);
+        } else {
+            showView(views.quiz);
+            try {
+                startQuiz(2);
+            } catch (error) {
+                console.error("Error in startQuiz(2):", error);
+                alert("Ocurrió un error al cargar la Ronda 2. Por favor, recarga la página.");
+            }
         }
     }
 
@@ -596,3 +641,66 @@ document.getElementById('btn-retry-generation')?.addEventListener('click', async
 });
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ── Selector de Intensidad (Spicy Level) ───────────────────────────────────
+
+/**
+ * Aplica el estilo visual activo al botón del nivel seleccionado.
+ * Nivel 1 = 💧 Normal, 2 = 🌶️ Picante, 3 = 🔥 Muy Atrevido
+ */
+function setSpicyUI(level) {
+    const STYLES = {
+        1: { active: '#4CC9F0', bg: 'rgba(76,201,240,0.15)' },
+        2: { active: '#FF6B9D', bg: 'rgba(255,107,157,0.15)' },
+        3: { active: '#FF4500', bg: 'rgba(255,69,0,0.18)' }
+    };
+    document.querySelectorAll('.spicy-btn').forEach(btn => {
+        const lvl = parseInt(btn.dataset.level);
+        if (lvl === level) {
+            btn.style.color = STYLES[level].active;
+            btn.style.background = STYLES[level].bg;
+            btn.style.borderRadius = '0';
+        } else {
+            btn.style.color = '#94a3b8';
+            btn.style.background = 'transparent';
+        }
+    });
+}
+
+/**
+ * Inicializa el selector: aplica UI inicial y configura interactividad según rol.
+ */
+function initSpicySelector(currentLevel) {
+    setSpicyUI(currentLevel);
+
+    const buttons = document.querySelectorAll('.spicy-btn');
+    const guestNote = document.getElementById('spicy-guest-note');
+
+    if (state.role === 'host') {
+        // El host puede cambiar el nivel
+        if (guestNote) guestNote.classList.add('hidden');
+        buttons.forEach(btn => {
+            btn.disabled = false;
+            btn.style.cursor = 'pointer';
+            btn.onclick = async () => {
+                const newLevel = parseInt(btn.dataset.level);
+                setSpicyUI(newLevel);
+                // Guardar en Firebase para sincronizar con el guest
+                try {
+                    await updateDoc(doc(db, 'sessions', state.sessionCode), { spicyLevel: newLevel });
+                } catch(e) {
+                    console.error('Error guardando spicyLevel:', e);
+                }
+            };
+        });
+    } else {
+        // El guest solo ve, no puede cambiar
+        if (guestNote) guestNote.classList.remove('hidden');
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            btn.style.cursor = 'default';
+            btn.onclick = null;
+        });
+    }
+}
+

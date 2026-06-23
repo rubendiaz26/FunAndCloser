@@ -40,14 +40,19 @@ const server = http.createServer(async (req, res) => {
         req.on('data', chunk => { body += chunk; });
         req.on('end', async () => {
             try {
-                const { topic, category, usedQuestions = [] } = JSON.parse(body);
+                let { topic, category, usedQuestions = [], spicyLevel = 1 } = JSON.parse(body);
+                
+                // Regla de seguridad: "Futuros Hijos" siempre debe ser nivel Normal (1)
+                if (topic === "Futuros Hijos") {
+                    spicyLevel = 1;
+                }
                 
                 let exclusionText = '';
                 if (usedQuestions.length > 0) {
                     exclusionText = `\nNO repitas ninguna de estas preguntas que ya se hicieron anteriormente:\n- ${usedQuestions.join('\n- ')}\n`;
                 }
 
-                const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(category);
+                const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos', 'Millonarios por un Día', 'Viajeros en el Tiempo'].includes(category);
 
                 const contextLine = isPersonalCategory
                     ? `Las preguntas deben considerar que la pareja pasa la semana separados por trabajo, pero se ven los fines de semana. Tienen mucha cercanía emocional. Deben ser íntimas, personales y relevantes para su dinámica como pareja. EVITA obsesionarte con la "distancia" o "extrañarse".`
@@ -57,32 +62,57 @@ const server = http.createServer(async (req, res) => {
                     ? `[\n  { "question": "...", "options": ["opción A", "opción B", "opción C", "opción D", "opción E"], "multiSelect": false },\n  { "question": "...", "options": ["opción A", "opción B", "opción C", "opción D", "opción E"], "multiSelect": true }\n]`
                     : `[\n  { "question": "...", "options": ["opción A", "opción B", "opción C", "opción D"], "multiSelect": false, "correctAnswerIndex": 0 }\n]\n(IMPORTANTE: En esta categoría objetiva incluye siempre "correctAnswerIndex" con el índice numérico de la opción correcta, de 0 al tamaño de tus opciones-1)`;
 
-                const prompt = `Eres un diseñador de juegos experto. Crea exactamente 10 preguntas de opción múltiple para el tema "${topic}" (Categoría: ${category}). ${exclusionText}
+                const rulesBlock = isPersonalCategory
+                    ? `REGLAS DE CALIDAD Y ESTILO (CRÍTICAS):
+- Las preguntas deben estar formuladas para que un jugador responda sobre SU PAREJA, no sobre sí mismo.
+- USA el placeholder exacto {pareja} en el texto de la pregunta para referirte al nombre de la pareja. El sistema lo reemplazará con el nombre real en pantalla.
+- LÍMITE ESTRICTO: máximo 14 palabras por pregunta (incluyendo "{pareja}"). Si supera ese número, reescríbela más corta.
+- PROHIBIDO: jerga inventada, palabras entre comillas simples, frases nominalizadas largas.
+- PROHIBIDO: usar guiones largos, paréntesis o estructuras del tipo "el hecho de que..." o "en el contexto de...".
+- EVITA abusar de menciones sobre "videollamadas", "mensajes", "lejanía" o "distancia".
+- INCLUYE preguntas variadas sobre: la forma de ser de la pareja, sus manías, su físico, sus hábitos.
+- USA verbos de acción directos: decidir, elegir, proponer, iniciar, decir, sentir, hacer.
+- Las opciones deben ser frases cortas y naturales (máx. 8 palabras), no descripciones literarias.
+- El 30-40% deben ser multiSelect: true, solo cuando tiene sentido elegir varias.
+- PERSPECTIVA DE LAS OPCIONES (MUY IMPORTANTE): Las opciones deben estar en TERCERA PERSONA poseesiva, referidas a la pareja.
+  USA: "su", "sus". PROHIBIDO usar "mi", "mis", "tu", "tus" en las opciones.
+  ❌ "mi carrera profesional"  →  ✅ "su carrera profesional"
+  ❌ "tus hobbies"             →  ✅ "sus hobbies"
+  ❌ "mi bienestar físico"     →  ✅ "su bienestar físico"
+- 🔥 REGLA DE ORIGINALIDAD (CRÍTICA): Las preguntas deben ser ESTRICTAMENTE y ESPECÍFICAMENTE sobre el tema "${topic}". ¡NO COPIES TEXTUALMENTE los ejemplos de abajo! Úsalos SOLAMENTE para entender la estructura de {pareja}. INVENTA PREGUNTAS NUEVAS 100% ORIGINALES.
+
+${spicyLevel === 1
+    ? `💧 NIVEL DE INTENSIDAD: NORMAL. Las preguntas deben explorar el tema "${topic}" de forma íntima y emocional. SIN contenido explícitamente sexual.`
+    : spicyLevel === 2
+    ? `🌶️ NIVEL DE INTENSIDAD: PICANTE. El tema central DEBE seguir siendo "${topic}", pero aplícale un giro sensual, pícaro o sugerente. Combina el concepto del tema con atracción física o insinuaciones, sin ser vulgar.`
+    : `🔥 NIVEL DE INTENSIDAD: MUY ATREVIDO. El tema central DEBE seguir siendo "${topic}", pero aplícale un contexto erótico o claramente sexual. Relaciona el concepto del tema con fantasías, deseos físicos o situaciones íntimas directas.`}
+
+✅ EJEMPLOS DE ESTRUCTURA (NO COPIAR):
+- "¿Qué parte del cuerpo de {pareja} te gusta más acariciar?"
+- "¿En qué decisión dejarías que {pareja} tomara la iniciativa?"
+- "¿Qué hábito de {pareja} te parece más adorable?"
+- "¿Qué parte de la rutina de {pareja} te gustaría compartir más?"
+- "¿En qué crees que {pareja} es mejor que tú?"`
+                    : `REGLAS DE CALIDAD Y ESTILO:
+- Las preguntas deben ser de cultura o conocimiento general. NADA de contexto de pareja o relaci\u00f3n.
+- NIVEL DE DIFICULTAD: INTERMEDIO. No uses preguntas demasiado f\u00e1ciles (capitales obvias, pa\u00edses grandes) ni excesivamente especializadas. El objetivo es que alguien con educaci\u00f3n media-alta deba pensar un poco.
+- Cada pregunta tiene UNA sola respuesta correcta (correctAnswerIndex obligatorio).
+- Las opciones deben ser plausibles y similares entre s\u00ed para que el reto sea real.
+- L\u00cdMITE ESTRICTO: m\u00e1ximo 12 palabras por pregunta.
+- NO uses par\u00e9ntesis en ninguna pregunta ni opci\u00f3n.
+- Las opciones deben ser breves: m\u00e1ximo 8 palabras por opci\u00f3n.
+- multiSelect SIEMPRE debe ser false para estas categor\u00edas.`;
+
+                const prompt = `Eres un dise\u00f1ador de juegos experto. Crea exactamente 10 preguntas de opci\u00f3n m\u00faltiple para el tema "${topic}" (Categor\u00eda: ${category}). ${exclusionText}
 
 ${contextLine}
 
-REGLAS DE FORMATO Y TEMÁTICA (MUY IMPORTANTES):
-- EVITA abusar de menciones sobre "videollamadas", "mensajes", "lejanía" o "distancia".
-- INCLUYE preguntas variadas sobre: la forma de ser de la pareja, sus manías, y qué te gusta más de su físico (partes del cuerpo o atributos físicos).
-- Las preguntas deben ser CORTAS y DIRECTAS: máximo 15 palabras.
-- NO uses paréntesis en ninguna pregunta ni opción.
-- NO uses frases entre guiones que hagan la pregunta más larga.
-- Escribe en primera persona cuando aplique ("Lo que más me gusta de su físico es...").
-- Las opciones deben ser breves: máximo 10 palabras por opción.
-- El 30-40% deben ser multiSelect: true, solo cuando tiene sentido elegir varias.
+${rulesBlock}
 
-EJEMPLOS de preguntas CORRECTAS (cortas y sin paréntesis):
-- "¿Qué hago cuando extraño a mi pareja sin decirlo?"
-- "Si nos reencontáramos hoy, lo primero que haría es..."
-- "¿Cuál es la capital de Brasil?"
-- "¿Qué país tiene más idiomas oficiales?"
-
-EJEMPLOS de preguntas INCORRECTAS (demasiado largas o con paréntesis):
-- "Cuando pienso en los pequeños viajes que hacemos juntos en nuestra mente (como hablar de nuestros planes futuros), lo que más valoro es..."
-
-Responde ÚNICAMENTE con un array JSON estricto:
+Responde \u00daNCIAMENTE con un array JSON estricto:
 ${jsonFormat}
 Solo el JSON. Sin markdown, sin comillas invertidas, sin texto extra.`;
+
 
                 const geminiReqBody = JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
@@ -92,7 +122,7 @@ Solo el JSON. Sin markdown, sin comillas invertidas, sin texto extra.`;
                     }
                 });
 
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
                 
                 const gReq = https.request(geminiUrl, {
                     method: 'POST',
