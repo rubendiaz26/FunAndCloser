@@ -56,8 +56,14 @@ ${contextLine}
 ${isPersonalCategory ? `REGLAS DE CALIDAD Y ESTILO (CRÍTICAS):
 - Las preguntas deben estar formuladas para que un jugador responda sobre SU PAREJA, no sobre sí mismo.
 - USA el placeholder exacto {pareja} en el texto de la pregunta para referirte al nombre de la pareja. El sistema lo reemplazará con el nombre real en pantalla.
+- PERSPECTIVA DE LA PREGUNTA (ABSOLUTA): Cada jugador lee su pregunta en su propia pantalla de forma individual y silenciosa. La pregunta NO es un diálogo, NO habla desde la primera persona.
+  PROHIBIDO en el texto de la pregunta: "mío", "mía", "mi", "mis", "tuyo", "tuya", "tu", "tus", "yo", "me", "nuestro".
+  ✅ CORRECTO: "¿Qué hábito de {pareja} te parece más tierno?"
+  ✅ CORRECTO: "¿En qué decisión dejarías que {pareja} tomara la iniciativa?"
+  ❌ INCORRECTO: "¿Qué hábito mío te parece más tierno?"
+  ❌ INCORRECTO: "¿Qué parte de mi rutina te gustaría conocer mejor?"
 - LÍMITE ESTRICTO: máximo 14 palabras por pregunta (incluyendo "{pareja}"). Si supera ese número, reescríbela más corta.
-- PROHIBIDO: jerga inventada, palabras entre comillas simples ('control', 'dinámica'), frases nominalizadas largas.
+- PROHIBIDO: jerga inventada, palabras entre comillas simples, frases nominalizadas largas.
 - PROHIBIDO: usar guiones largos, paréntesis o estructuras del tipo "el hecho de que..." o "en el contexto de...".
 - INCLUYE preguntas variadas sobre: la forma de ser de la pareja, sus manías, su físico, sus hábitos.
 - USA verbos de acción directos: decidir, elegir, proponer, iniciar, decir, sentir, hacer.
