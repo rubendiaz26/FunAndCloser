@@ -89,7 +89,25 @@ ${spicyLevel === 1
 - "¿Qué parte de la rutina de {pareja} te gustaría compartir más?"
 - "¿En qué crees que {pareja} es mejor que tú?"` : `REGLAS DE CALIDAD Y ESTILO:
 - Las preguntas deben ser de cultura o conocimiento general. NADA de contexto de pareja o relación.
-- NIVEL DE DIFICULTAD: INTERMEDIO. No uses preguntas demasiado fáciles (capitales obvias, países grandes) ni excesivamente especializadas. El objetivo es que alguien con educación media-alta deba pensar un poco.
+- AUDIENCIA OBJETIVO: Las preguntas deben ser respondibles por cualquier adulto promedio sin estudios universitarios especializados en el tema. Si alguien necesitaría haber tomado una clase universitaria para responder, la pregunta es demasiado difícil.
+- ESCALA DE DIFICULTAD (síguela con exactitud):
+  ❌ DEMASIADO FÁCIL (evitar): "¿Cuál es la capital de Francia?", "¿Cuántos jugadores tiene un equipo de fútbol?"
+  ✅ NIVEL CORRECTO (apuntar a esto): "¿En qué continente está Egipto?", "¿Quién inventó el teléfono?", "¿Qué país tiene la bandera con la hoja de maple?"
+  ❌ DEMASIADO DIFÍCIL (prohibido): "¿Qué filósofo defendió la separación de poderes?", "¿Cuál es la capital de Burkina Faso?", "¿Qué poeta escribió El paraíso perdido?"
+- TEMAS PROHIBIDOS POR SER DEMASIADO ESPECIALIZADOS:
+  - Filósofos, pensadores y corrientes filosóficas o políticas específicas
+  - Autores literarios poco conocidos o títulos exactos de obras
+  - Capitales de países pequeños o poco conocidos
+  - Historia política muy específica (tratados, artículos de constituciones, batallas menores)
+  - Fechas exactas de eventos históricos
+  - Términos científicos avanzados
+- TEMAS RECOMENDADOS (accesibles y entretenidos):
+  - Datos curiosos, récords y hechos sorprendentes del mundo
+  - Inventores famosos y sus inventos más conocidos
+  - Geografía mayor: países, continentes, océanos, montañas famosas
+  - Animales, naturaleza y ciencia básica y visual
+  - Cultura pop: películas conocidas, música, deportes, celebridades globales
+  - Cocina, tradiciones y costumbres de distintas culturas
 - Cada pregunta tiene UNA sola respuesta correcta (correctAnswerIndex obligatorio).
 - Las opciones deben ser plausibles y similares entre sí para que el reto sea real (ej: no mezcles países de distintos continentes si la respuesta es un país europeo).
 - LÍMITE ESTRICTO: máximo 12 palabras por pregunta.

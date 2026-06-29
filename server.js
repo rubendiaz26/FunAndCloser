@@ -100,16 +100,34 @@ ${spicyLevel === 1
 - "¿Qué parte de la rutina de {pareja} te gustaría compartir más?"
 - "¿En qué crees que {pareja} es mejor que tú?"`
                     : `REGLAS DE CALIDAD Y ESTILO:
-- Las preguntas deben ser de cultura o conocimiento general. NADA de contexto de pareja o relaci\u00f3n.
-- NIVEL DE DIFICULTAD: INTERMEDIO. No uses preguntas demasiado f\u00e1ciles (capitales obvias, pa\u00edses grandes) ni excesivamente especializadas. El objetivo es que alguien con educaci\u00f3n media-alta deba pensar un poco.
+- Las preguntas deben ser de cultura o conocimiento general. NADA de contexto de pareja o relación.
+- AUDIENCIA OBJETIVO: Las preguntas deben ser respondibles por cualquier adulto promedio sin estudios universitarios especializados en el tema. Si alguien necesitaría haber tomado una clase universitaria para responder, la pregunta es demasiado difícil.
+- ESCALA DE DIFICULTAD (síguela con exactitud):
+  ❌ DEMASIADO FÁCIL (evitar): "¿Cuál es la capital de Francia?", "¿Cuántos jugadores tiene un equipo de fútbol?"
+  ✅ NIVEL CORRECTO (apuntar a esto): "¿En qué continente está Egipto?", "¿Quién inventó el teléfono?", "¿Qué país tiene la bandera con la hoja de maple?"
+  ❌ DEMASIADO DIFÍCIL (prohibido): "¿Qué filósofo defendió la separación de poderes?", "¿Cuál es la capital de Burkina Faso?", "¿Qué poeta escribió El paraíso perdido?"
+- TEMAS PROHIBIDOS POR SER DEMASIADO ESPECIALIZADOS:
+  - Filósofos, pensadores y corrientes filosóficas o políticas específicas
+  - Autores literarios poco conocidos o títulos exactos de obras
+  - Capitales de países pequeños o poco conocidos
+  - Historia política muy específica (tratados, artículos de constituciones, batallas menores)
+  - Fechas exactas de eventos históricos
+  - Términos científicos avanzados
+- TEMAS RECOMENDADOS (accesibles y entretenidos):
+  - Datos curiosos, récords y hechos sorprendentes del mundo
+  - Inventores famosos y sus inventos más conocidos
+  - Geografía mayor: países, continentes, océanos, montañas famosas
+  - Animales, naturaleza y ciencia básica y visual
+  - Cultura pop: películas conocidas, música, deportes, celebridades globales
+  - Cocina, tradiciones y costumbres de distintas culturas
 - Cada pregunta tiene UNA sola respuesta correcta (correctAnswerIndex obligatorio).
-- Las opciones deben ser plausibles y similares entre s\u00ed para que el reto sea real.
-- L\u00cdMITE ESTRICTO: m\u00e1ximo 12 palabras por pregunta.
-- NO uses par\u00e9ntesis en ninguna pregunta ni opci\u00f3n.
-- Las opciones deben ser breves: m\u00e1ximo 8 palabras por opci\u00f3n.
-- multiSelect SIEMPRE debe ser false para estas categor\u00edas.`;
+- Las opciones deben ser plausibles y similares entre sí para que el reto sea real.
+- LÍMITE ESTRICTO: máximo 12 palabras por pregunta.
+- NO uses paréntesis en ninguna pregunta ni opción.
+- Las opciones deben ser breves: máximo 8 palabras por opción.
+- multiSelect SIEMPRE debe ser false para estas categorías.`;
 
-                const prompt = `Eres un dise\u00f1ador de juegos experto. Crea exactamente 10 preguntas de opci\u00f3n m\u00faltiple para el tema "${topic}" (Categor\u00eda: ${category}). ${exclusionText}
+                const prompt = `Eres un diseñador de juegos experto. Crea exactamente 10 preguntas de opción múltiple para el tema "${topic}" (Categoría: ${category}). ${exclusionText}
 
 ${contextLine}
 

@@ -40,7 +40,7 @@ export async function renderResults() {
         return guessArr.some(g => truthArr.includes(g));
     }
 
-    const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(data.category);
+    const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos', 'Millonarios por un Día', 'Viajeros en el Tiempo'].includes(data.category);
 
     for (let i = 0; i < 10; i++) {
         if (isPersonalCategory) {
@@ -288,7 +288,7 @@ function renderBreakdown(data, hostTruth, guestTruth, hostGuesses, guestGuesses)
                 </div>`;
     };
 
-    const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos'].includes(data.category);
+    const isPersonalCategory = ['Recuerdos y Conexión', 'Divertidos y Cotidianos', 'Para Soñar Juntos', 'Picantes y Atrevidos', 'Millonarios por un Día', 'Viajeros en el Tiempo'].includes(data.category);
 
     questions.forEach((q, i) => {
         const opts = q.options;
@@ -308,7 +308,7 @@ function renderBreakdown(data, hostTruth, guestTruth, hostGuesses, guestGuesses)
 
             card.innerHTML = `
                 <p style="font-size:10px; font-weight:800; letter-spacing:0.14em; color:rgba(255,255,255,0.35); text-transform:uppercase; margin:0 0 8px 0;">PREGUNTA ${i + 1}</p>
-                <p style="font-size:16px; font-weight:700; color:white; line-height:1.5; margin:0 0 20px 0;">${q.question}</p>
+                <p style="font-size:16px; font-weight:700; color:white; line-height:1.5; margin:0 0 20px 0;">${q.question.replace(/\{pareja\}/gi, 'tu pareja')}</p>
 
                 <!-- Host adivina a Guest -->
                 <div style="margin-bottom:6px;">
@@ -371,7 +371,7 @@ function renderBreakdown(data, hostTruth, guestTruth, hostGuesses, guestGuesses)
             
             card.innerHTML = `
                 <p style="font-size:10px; font-weight:800; letter-spacing:0.14em; color:rgba(255,255,255,0.35); text-transform:uppercase; margin:0 0 8px 0;">PREGUNTA ${i + 1}</p>
-                <p style="font-size:16px; font-weight:700; color:white; line-height:1.5; margin:0 0 20px 0;">${q.question}</p>
+                <p style="font-size:16px; font-weight:700; color:white; line-height:1.5; margin:0 0 20px 0;">${q.question.replace(/\{pareja\}/gi, 'tu pareja')}</p>
 
                 <div style="margin-bottom:18px;">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
